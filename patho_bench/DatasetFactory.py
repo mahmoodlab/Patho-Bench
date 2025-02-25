@@ -25,7 +25,7 @@ class DatasetFactory:
         '''
         return CombinedDataset({
             'slide': DatasetFactory._patch_embeddings_dataset(**kwargs),
-            'labels': DatasetFactory._labels_dataset(kwargs['split'], kwargs['task'])
+            'labels': DatasetFactory._labels_dataset(kwargs['split'], kwargs['task_name'])
         })
         
     @staticmethod
@@ -35,7 +35,7 @@ class DatasetFactory:
         '''
         return CombinedDataset({
             'slide': DatasetFactory._slide_embeddings_dataset(**kwargs),
-            'labels': DatasetFactory._labels_dataset(kwargs['split'], kwargs['task'])
+            'labels': DatasetFactory._labels_dataset(kwargs['split'], kwargs['task_name'])
         })
 
     @staticmethod
