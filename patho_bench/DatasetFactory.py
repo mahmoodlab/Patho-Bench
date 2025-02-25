@@ -39,27 +39,29 @@ class DatasetFactory:
         })
 
     @staticmethod
-    def _slide_embeddings_dataset(split, pooled_embeddings_dir = None, source = None, patch_embeddings_dirs = None, pooled_embeddings_root = None, pooling_level = None, combine_slides_per_patient = None, model_name = None, gpu = -1, **kwargs):
+    def _slide_embeddings_dataset(split,
+                                  pooled_embeddings_dir = None,
+                                  patch_embeddings_dirs = None,
+                                  combine_slides_per_patient = None,
+                                  model_name = None,
+                                  gpu = -1,
+                                  **kwargs):
         '''
         Creates a dataset that loads pooled (slide-level or patient-level) features.
         If the pooled features do not exist, they are created from patch-level features and saved to the provided directory.
         
         Args:
             split (Split): Split object
-            pooled_embeddings_dir (str): Path to directory containing pooled embeddings. If None, pooled embeddings are created from patch embeddings.
-            source (str): Name of the data source
+            pooled_embeddings_dir (str): Path to directory containing pooled embeddings. If empty, must provide patch_embeddings_dirs to create pooled embeddings.
             patch_embeddings_dirs (list): List of directories containing patch embeddings
-            pooled_embeddings_root (str): Path to root folder where pooled embeddings are saved. Subdirectories are automatically created for each datasource and pooling type.
-            pooling_level (str): Level of pooling ('case_id' or 'slide_id')
             combine_slides_per_patient (bool): Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently and take mean (late fusion).
-            model_name (str): Name of the model
+            model_name (str): Name of the model used for pooling
             gpu (int): GPU to use for pooling. If -1, the best available GPU is used.
         '''
         
-        if not pooled_embeddings_dir:
-            # If pooled_embeddings_dir is not provided, must prepare pooled features from patch features (this will skip over slides that have already been pooled)
-            pooled_embeddings_dir = os.path.join(pooled_embeddings_root, f'by_{pooling_level}', model_name, source)
-            print('\033[94m' + f'Saving {pooling_level}-level features to {pooled_embeddings_dir}, using {model_name}...' + '\033[0m')
+        if patch_embeddings_dirs:
+            # If patch_embeddings_dirs is provided, will prepare pooled features from patch features (this will skip over slides that have already been pooled)
+            print('\033[94m' + f'Pooling features to {pooled_embeddings_dir}, using {model_name}...' + '\033[0m')
             pooler = Pooler(patch_embeddings_dataset = DatasetFactory._patch_embeddings_dataset(split, patch_embeddings_dirs, combine_slides_per_patient, bag_size = None),
                                     model_name = model_name,
                                     save_path = pooled_embeddings_dir,
