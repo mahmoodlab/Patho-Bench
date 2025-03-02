@@ -89,6 +89,7 @@ class ExperimentFactory:
 
             # Load external dataset        
             external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
+                                                                    task_name = task_info['task_col'],
                                                                     pooled_embeddings_dir = external_pooled_embeddings_dir,
                                                                     patch_embeddings_dirs = patch_embeddings_dirs,
                                                                     combine_slides_per_patient = combine_slides_per_patient,
@@ -168,6 +169,7 @@ class ExperimentFactory:
 
             # Load external dataset        
             external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
+                                                                    task_name = task_info['task_col'],
                                                                     pooled_embeddings_dir = external_pooled_embeddings_dir,
                                                                     patch_embeddings_dirs = patch_embeddings_dirs,
                                                                     combine_slides_per_patient = combine_slides_per_patient,
@@ -246,6 +248,7 @@ class ExperimentFactory:
 
             # Load external dataset        
             external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
+                                                                    task_name = task_info['task_col'],
                                                                     pooled_embeddings_dir = external_pooled_embeddings_dir,
                                                                     patch_embeddings_dirs = patch_embeddings_dirs,
                                                                     combine_slides_per_patient = combine_slides_per_patient,
