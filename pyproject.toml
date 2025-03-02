@@ -23,8 +23,9 @@ dependencies = [
     "datasets"
 ]
 
-[tool.setuptools]
-packages = ["patho_bench"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["patho_bench*"]
 
 [tool.setuptools.package-data]
 pathobench = ["*.md", "*.txt"]
