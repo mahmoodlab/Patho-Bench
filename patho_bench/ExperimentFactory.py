@@ -279,7 +279,7 @@ class ExperimentFactory:
                                                         bag_size = bag_size)
 
         ###### Get loss ################################################################
-        if task_type == 'survival':
+        if task_info['task_type'] == 'survival':
             loss = NLLSurvLoss(alpha=0.0, eps=1e-7, reduction='mean')
         elif balanced:
             # Balanced loss is a dict of losses for each fold
@@ -342,7 +342,7 @@ class ExperimentFactory:
         
         ###### Configure experiment ################################################################
         experiment_kwargs = {
-            'task_type': task_type,
+            'task_type': task_info['task_type'],
             'dataset': dataset,
             'combine_train_val': False,
             'batch_size': batch_size,
