@@ -261,13 +261,13 @@ class ExperimentFactory:
                                                     saveto = external_saveto)
 
     @staticmethod
-    def finetune(model_name: str,
-                 train_source: str,
-                 task_name: str,
-                 task_type: str,
+    def finetune(split: str,
+                 task_config: str,
                  patch_embeddings_dirs: list[str],
                  saveto: str,
                  combine_slides_per_patient: bool,
+                 model_name: str,
+                 task_type: str,
                  bag_size,
                  base_learning_rate,
                  gradient_accumulation,
@@ -279,24 +279,23 @@ class ExperimentFactory:
                  save_which_checkpoints: str,
                  layer_decay = None,
                  gpu = -1,
-                 test_source: str = None,
-                 splits_root: str = None,
-                 path_to_split: str = None,
-                 path_to_external_split: str = None,
-                 path_to_task_config: str = None,
+                 batch_size = 1, # Only batch_size = 1 is supported for finetuning for now
+                 external_split: str = None,
+                 external_pooled_embeddings_dir: str = None,
+                 external_saveto: str = None,
                  num_bootstraps: int = 100):
         '''
         Create finetuning experiment, where the input is a bag of patch embeddings.
 
         Args:
-            model_name: str, name of the model
-            train_source: str, name of the training data source
-            test_source: str, name of the testing data source. Currently, finetune only supports training and testing on the same data source (test_source must be None). Included for compatibility with ExperimentFactory.sweep().
-            task_name: str, name of the task
-            task_type: str, type of task. Can be 'survival' or 'classification'
-            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment
+            split: str, path to local split file.
+            task_config: str, path to task config file.
+            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
             saveto: str, path to save the results
-            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently
+            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.
+            model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            task_type: str, type of task. Can be 'survival' or 'classification'
+            
             bag_size: int or None, number of patches per bag
             base_learning_rate: float or None, base learning rate
             gradient_accumulation: int or None, gradient accumulation steps
@@ -307,31 +306,28 @@ class ExperimentFactory:
             balanced: bool, whether to use balanced class weights
             save_which_checkpoints: str, which checkpoints to save
             layer_decay: float or None, layer decay for gigapath optimizer
-            gpu: int, GPU id
-            splits_root: str, path to root folder where splits are automatically saved from HuggingFace.
-            path_to_split: str, path to local split file. Either splits_root or path_to_split must be provided.
-            path_to_external_split: str, path to local split file for external testing. If test_source is not None, either this or splits_root must be provided. Currently, finetune only supports training and testing on the same data source (test_source must be None). Included for compatibility with ExperimentFactory.sweep().
-            path_to_task_config: str, path to task config file. If None, task config will be loaded from HF.
+            
+            gpu: int, GPU id. If -1, the best available GPU is used.
+            batch_size: int, batch size. Only batch_size = 1 is supported for finetuning for now
+            external_split: str, path to local split file for external testing.
+            external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
+            external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        batch_size = 1
-
         assert task_type in ['survival', 'classification'], f'Invalid task type: {task_type}. Must be "survival" or "classification".'
-        assert test_source is None, 'Finetuning only supports training and testing on the same data source for now. Please leave test_source as default (None).'
+        assert batch_size == 1, 'Only batch_size = 1 is supported for finetuning for now'
+        for illegal_arg in [external_split, external_pooled_embeddings_dir, external_saveto]:
+            assert illegal_arg is None, 'Finetuning does not yet support generalizability experiment. Please leave external_split, external_pooled_embeddings_dir, and external_saveto as default (None).'
         
         ###### Get dataset ################################################################
-        if path_to_split:
-            assert path_to_task_config, 'path_to_task_config must be provided if path_to_split is provided.'
-            split, task_info = SplitFactory.from_local(path_to_split, path_to_task_config, task_name)
-        else:
-            split, task_info = SplitFactory.from_hf(splits_root, train_source, task_name)
+        split, task_info = SplitFactory.from_local(split, task_config)
         split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
-
+        task_name = task_info['task_col']
         dataset = DatasetFactory.from_patch_embeddings(split = split,
-                                                       task = task_name,
-                                                       patch_embeddings_dirs = patch_embeddings_dirs,
-                                                       combine_slides_per_patient = combine_slides_per_patient,
-                                                       bag_size = bag_size)
+                                                        task_name = task_name,
+                                                        patch_embeddings_dirs = patch_embeddings_dirs,
+                                                        combine_slides_per_patient = combine_slides_per_patient,
+                                                        bag_size = bag_size)
 
         ###### Get loss ################################################################
         if task_type == 'survival':
