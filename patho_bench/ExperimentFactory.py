@@ -120,20 +120,19 @@ class ExperimentFactory:
         Create retrieval experiment using slide-level embeddings.
         
         Args:
-            model_name: str, name of the model
-            train_source: str, name of the training data source
-            test_source: str, name of the testing data source. If None, no generalizability experiment is run.
-            task_name: str, name of the task
-            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment
-            pooled_embeddings_root: str, path to folder containing pooled embeddings (slide-level or patient-level). If empty dir, embeddings will be pooled on the fly.
+            split: str, path to local split file.
+            task_config: str, path to task config file.
+            pooled_embeddings_dir: str, path to folder containing pre-pooled embeddings (slide-level or patient-level). If empty, must provide patch_embeddings_dirs.
             saveto: str, path to save the results
-            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently
-            similarity: str, similarity metric for Retrieval experiment
-            centering: bool, whether to use centering in Retrieval experiment
-            splits_root: str, path to root folder where splits are automatically saved from HuggingFace. Either splits_root or path_to_split must be provided.
-            path_to_split: str, path to local split file. Either splits_root or path_to_split must be provided.
-            path_to_external_split: str, path to local split file for external testing. If test_source is not None, either this or splits_root must be provided.
-            path_to_task_config: str, path to task config file. If None, task config will be loaded from HF.
+            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.
+            similarity: str, similarity metric to use. Can be 'cosine' or 'l2'.
+            centering: bool, whether to center the embeddings before computing similarity.
+            gpu: int, GPU id. If -1, the best available GPU is used.
+            external_split: str, path to local split file for external testing.
+            external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
+            external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
+            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
+            model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         split, task_info = SplitFactory.from_local(split, task_config)
@@ -200,20 +199,19 @@ class ExperimentFactory:
         Create CoxNet experiment using slide-level embeddings.
         
         Args:
-            model_name: str, name of the model
-            train_source: str, name of the training data source
-            test_source: str, name of the testing data source. If None, no generalizability experiment is run.
-            task_name: str, name of the task
-            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment
-            pooled_embeddings_root: str, path to folder containing pooled embeddings (slide-level or patient-level). If empty dir, embeddings will be pooled on the fly.
+            split: str, path to local split file.
+            task_config: str, path to task config file.
+            pooled_embeddings_dir: str, path to folder containing pre-pooled embeddings (slide-level or patient-level). If empty, must provide patch_embeddings_dirs.
             saveto: str, path to save the results
-            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently
-            alpha: float, alpha parameter for CoxNet experiment
-            l1_ratio: float, l1_ratio parameter for CoxNet experiment
-            splits_root: str, path to root folder where splits are automatically saved from HuggingFace. Either splits_root or path_to_split must be provided.
-            path_to_split: str, path to local split file. Either splits_root or path_to_split must be provided.
-            path_to_external_split: str, path to local split file for external testing. If test_source is not None, either this or splits_root must be provided.
-            path_to_task_config: str, path to task config file. If None, task config will be loaded from HF.
+            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.
+            alpha: float, alpha parameter for CoxNet
+            l1_ratio: float, l1_ratio parameter for CoxNet
+            gpu: int, GPU id. If -1, the best available GPU is used.
+            external_split: str, path to local split file for external testing.
+            external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
+            external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
+            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
+            model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         split, task_info = SplitFactory.from_local(split, task_config)
