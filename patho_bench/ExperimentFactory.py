@@ -101,22 +101,21 @@ class ExperimentFactory:
                                                     saveto = external_saveto)
     
     @staticmethod
-    def retrieval(model_name: str,
-                  train_source: str,
-                  task_name: str,
-                  patch_embeddings_dirs: list[str],
-                  pooled_embeddings_root: str,
-                  saveto: str,
-                  combine_slides_per_patient: bool,
-                  similarity: str,
-                  centering: bool,
-                  gpu = -1,
-                  test_source: str = None,
-                  splits_root: str = None,
-                  path_to_split: str = None,
-                  path_to_external_split: str = None,
-                  path_to_task_config: str = None,
-                  num_bootstraps: int = 100):
+    def retrieval(
+                 split: str,
+                 task_config: str,
+                 pooled_embeddings_dir: str,
+                 saveto: str,
+                 combine_slides_per_patient: bool,
+                 similarity: str,
+                 centering: bool,
+                 gpu = -1,
+                 external_split: str = None,
+                 external_pooled_embeddings_dir: str = None,
+                 external_saveto: str = None,
+                 patch_embeddings_dirs: list[str] = None,
+                 model_name: str = None,
+                 num_bootstraps: int = 100): 
         '''
         Create retrieval experiment using slide-level embeddings.
         
@@ -137,51 +136,49 @@ class ExperimentFactory:
             path_to_task_config: str, path to task config file. If None, task config will be loaded from HF.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        assert task_name not in ['OS', 'PFS', 'DSS'], f'{task_name} is a survival task. Use "coxnet" instead.'
-        
-        if path_to_split:
-            assert path_to_task_config, 'path_to_task_config must be provided if path_to_split is provided.'
-            split, task_info = SplitFactory.from_local(path_to_split, path_to_task_config, task_name)
-        else:
-            split, task_info = SplitFactory.from_hf(splits_root, train_source, task_name)
+        split, task_info = SplitFactory.from_local(split, task_config)
         split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
-            
-        experiment = RetrievalExperiment(dataset = DatasetFactory.from_slide_embeddings(split = split,
-                                                                                        source = train_source,
-                                                                                        task = task_name,
-                                                                                        patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                                        pooled_embeddings_root = pooled_embeddings_root,
-                                                                                        pooling_level = task_info['sample_col'],
-                                                                                        combine_slides_per_patient = combine_slides_per_patient,
-                                                                                        model_name = model_name,
-                                                                                        gpu = gpu),
-                                    combine_train_val = False,
-                                    task_name = task_name,
-                                    num_classes = len(task_info['label_dict']),
-                                    num_bootstraps = num_bootstraps,
-                                    top_ks = [1, 5, 10],
-                                    similarity = similarity,
-                                    use_centering = centering,
-                                    results_dir = saveto
-                                    )
+        
+        # Load internal dataset
+        internal_dataset = DatasetFactory.from_slide_embeddings(split = split,
+                                                                task_name = task_info['task_col'],
+                                                                pooled_embeddings_dir = pooled_embeddings_dir,
+                                                                patch_embeddings_dirs = patch_embeddings_dirs,
+                                                                combine_slides_per_patient = combine_slides_per_patient,
+                                                                model_name = model_name,
+                                                                gpu = gpu)
 
-        if test_source is None:
+        # Initialize experiment
+        experiment = RetrievalExperiment(dataset = internal_dataset,
+                                           combine_train_val = False,
+                                           task_name = task_info['task_col'],
+                                           num_classes = len(task_info['label_dict']),
+                                           num_bootstraps = num_bootstraps,
+                                           top_ks = [1, 5, 10],
+                                           similarity = similarity,
+                                           use_centering = centering,
+                                           results_dir = saveto
+                                           )
+
+        if external_split is None:
             return experiment
         else:
+            external_split, task_info = SplitFactory.from_local(external_split, task_config)
+            external_split.remove_all_folds()
+            external_split.assign_folds(num_folds=internal_dataset.num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
+
+            # Load external dataset        
+            external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
+                                                                    pooled_embeddings_dir = external_pooled_embeddings_dir,
+                                                                    patch_embeddings_dirs = patch_embeddings_dirs,
+                                                                    combine_slides_per_patient = combine_slides_per_patient,
+                                                                    model_name = model_name,
+                                                                    gpu = gpu)
+            
             return GeneralizabilityExperimentWrapper(experiment,
-                                                    model_name = model_name,
-                                                    task_name = task_name,
-                                                    train_source = train_source,
-                                                    test_source = test_source,
-                                                    test_external_only = True,
-                                                    patch_embeddings_dirs = patch_embeddings_dirs,
-                                                    pooled_embeddings_root = pooled_embeddings_root,
-                                                    splits_root = splits_root,
-                                                    path_to_external_split = path_to_external_split,
-                                                    path_to_task_config = path_to_task_config,
-                                                    combine_slides_per_patient = combine_slides_per_patient,
-                                                    saveto = saveto,
-                                                    gpu = gpu)
+                                                     external_dataset = external_dataset,
+                                                     test_external_only = True,
+                                                     saveto = external_saveto)
     
     @staticmethod
     def coxnet(model_name: str,
