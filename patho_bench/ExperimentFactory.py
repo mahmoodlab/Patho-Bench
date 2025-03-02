@@ -218,7 +218,6 @@ class ExperimentFactory:
                  saveto: str,
                  combine_slides_per_patient: bool,
                  model_name: str,
-                 task_type: str,
                  bag_size,
                  base_learning_rate,
                  gradient_accumulation,
@@ -245,7 +244,6 @@ class ExperimentFactory:
             saveto: str, path to save the results
             combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
-            task_type: str, type of task. Can be 'survival' or 'classification'
             
             bag_size: int or None, number of patches per bag
             base_learning_rate: float or None, base learning rate
@@ -265,13 +263,13 @@ class ExperimentFactory:
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        assert task_type in ['survival', 'classification'], f'Invalid task type: {task_type}. Must be "survival" or "classification".'
         assert batch_size == 1, 'Only batch_size = 1 is supported for finetuning for now'
         for illegal_arg in [external_split, external_pooled_embeddings_dir, external_saveto]:
             assert illegal_arg is None, 'Finetuning does not yet support generalizability experiment. Please leave external_split, external_pooled_embeddings_dir, and external_saveto as default (None).'
         
         ###### Get dataset ################################################################
         split, task_info = SplitFactory.from_local(split, task_config)
+        assert task_info['task_type'] in ['survival', 'classification'], f'Invalid task type: {task_info["task_type"]}. Must be "survival" or "classification".'
         split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
         task_name = task_info['task_col']
         dataset = DatasetFactory.from_patch_embeddings(split = split,
