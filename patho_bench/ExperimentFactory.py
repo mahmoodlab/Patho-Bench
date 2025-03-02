@@ -56,50 +56,34 @@ class ExperimentFactory:
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        split, task_info = SplitFactory.from_local(split, task_config)
-        split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
         
-        # Load internal dataset
-        internal_dataset = DatasetFactory.from_slide_embeddings(split = split,
-                                                                task_name = task_info['task_col'],
-                                                                pooled_embeddings_dir = pooled_embeddings_dir,
-                                                                patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                combine_slides_per_patient = combine_slides_per_patient,
-                                                                model_name = model_name,
-                                                                gpu = gpu)
-
         # Initialize experiment
-        experiment = LinearProbeExperiment(dataset = internal_dataset,
-                                            combine_train_val = False,
-                                            task_name = task_info['task_col'],
-                                            num_classes = len(task_info['label_dict']),
-                                            num_bootstraps = num_bootstraps,
-                                            cost = cost,
-                                            max_iter = 10000,
-                                            balanced_class_weights = balanced,
-                                            results_dir = saveto
-                                            )
+        experiment = LinearProbeExperiment(
+            dataset=internal_dataset,
+            combine_train_val=False,
+            task_name=task_info['task_col'],
+            num_classes=len(task_info['label_dict']),
+            num_bootstraps=num_bootstraps,
+            cost=cost,
+            max_iter=10000,
+            balanced_class_weights=balanced,
+            results_dir=saveto
+        )
 
         if external_split is None:
             return experiment
         else:
-            external_split, task_info = SplitFactory.from_local(external_split, task_config)
-            external_split.remove_all_folds()
-            external_split.assign_folds(num_folds=internal_dataset.num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
-
-            # Load external dataset        
-            external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
-                                                                    task_name = task_info['task_col'],
-                                                                    pooled_embeddings_dir = external_pooled_embeddings_dir,
-                                                                    patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                    combine_slides_per_patient = combine_slides_per_patient,
-                                                                    model_name = model_name,
-                                                                    gpu = gpu)
-            
-            return GeneralizabilityExperimentWrapper(experiment,
-                                                     external_dataset = external_dataset,
-                                                    test_external_only = True,
-                                                    saveto = external_saveto)
+            external_dataset = ExperimentFactory._prepare_external_dataset(
+                external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+            return GeneralizabilityExperimentWrapper(
+                experiment,
+                external_dataset=external_dataset,
+                test_external_only=True,
+                saveto=external_saveto
+            )
     
     @staticmethod
     def retrieval(
@@ -136,67 +120,50 @@ class ExperimentFactory:
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        split, task_info = SplitFactory.from_local(split, task_config)
-        split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
         
-        # Load internal dataset
-        internal_dataset = DatasetFactory.from_slide_embeddings(split = split,
-                                                                task_name = task_info['task_col'],
-                                                                pooled_embeddings_dir = pooled_embeddings_dir,
-                                                                patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                combine_slides_per_patient = combine_slides_per_patient,
-                                                                model_name = model_name,
-                                                                gpu = gpu)
-
         # Initialize experiment
-        experiment = RetrievalExperiment(dataset = internal_dataset,
-                                           combine_train_val = False,
-                                           task_name = task_info['task_col'],
-                                           num_classes = len(task_info['label_dict']),
-                                           num_bootstraps = num_bootstraps,
-                                           top_ks = [1, 5, 10],
-                                           similarity = similarity,
-                                           use_centering = centering,
-                                           results_dir = saveto
-                                           )
+        experiment = RetrievalExperiment(
+            dataset=internal_dataset,
+            combine_train_val=False,
+            task_name=task_info['task_col'],
+            num_classes=len(task_info['label_dict']),
+            num_bootstraps=num_bootstraps,
+            top_ks=[1, 5, 10],
+            similarity=similarity,
+            use_centering=centering,
+            results_dir=saveto
+        )
 
         if external_split is None:
             return experiment
         else:
-            external_split, task_info = SplitFactory.from_local(external_split, task_config)
-            external_split.remove_all_folds()
-            external_split.assign_folds(num_folds=internal_dataset.num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
-
-            # Load external dataset        
-            external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
-                                                                    task_name = task_info['task_col'],
-                                                                    pooled_embeddings_dir = external_pooled_embeddings_dir,
-                                                                    patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                    combine_slides_per_patient = combine_slides_per_patient,
-                                                                    model_name = model_name,
-                                                                    gpu = gpu)
-            
-            return GeneralizabilityExperimentWrapper(experiment,
-                                                     external_dataset = external_dataset,
-                                                     test_external_only = True,
-                                                     saveto = external_saveto)
+            external_dataset = ExperimentFactory._prepare_external_dataset(
+                external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+            return GeneralizabilityExperimentWrapper(
+                experiment,
+                external_dataset=external_dataset,
+                test_external_only=True,
+                saveto=external_saveto
+            )
     
     @staticmethod
-    def coxnet(
-            split: str,
-            task_config: str,
-            pooled_embeddings_dir: str,
-            saveto: str,
-            combine_slides_per_patient: bool,
-            alpha: float,
-            l1_ratio: float,
-            gpu = -1,
-            external_split: str = None,
-            external_pooled_embeddings_dir: str = None,
-            external_saveto: str = None,
-            patch_embeddings_dirs: list[str] = None,
-            model_name: str = None,
-            num_bootstraps: int = 100): 
+    def coxnet(split: str,
+               task_config: str,
+               pooled_embeddings_dir: str,
+               saveto: str,
+               combine_slides_per_patient: bool,
+               alpha: float,
+               l1_ratio: float,
+               gpu=-1,
+               external_split: str=None,
+               external_pooled_embeddings_dir: str=None,
+               external_saveto: str=None,
+               patch_embeddings_dirs: list[str]=None,
+               model_name: str=None,
+               num_bootstraps: int=100):
         '''
         Create CoxNet experiment using slide-level embeddings.
         
@@ -216,49 +183,33 @@ class ExperimentFactory:
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        split, task_info = SplitFactory.from_local(split, task_config)
-        split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
         
-        # Load internal dataset
-        internal_dataset = DatasetFactory.from_slide_embeddings(split = split,
-                                                                task_name = task_info['task_col'],
-                                                                pooled_embeddings_dir = pooled_embeddings_dir,
-                                                                patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                combine_slides_per_patient = combine_slides_per_patient,
-                                                                model_name = model_name,
-                                                                gpu = gpu)
-
         # Initialize experiment
-        experiment = CoxNetExperiment(dataset = internal_dataset,
-                                            combine_train_val = False,
-                                            task_name = task_info['task_col'],
-                                            alpha = alpha,
-                                            l1_ratio = l1_ratio,
-                                            max_iter = 100000,
-                                            num_bootstraps = num_bootstraps,
-                                            results_dir = saveto
-                                            )
+        experiment = CoxNetExperiment(
+            dataset=internal_dataset,
+            combine_train_val=False,
+            task_name=task_info['task_col'],
+            alpha=alpha,
+            l1_ratio=l1_ratio,
+            max_iter=100000,
+            num_bootstraps=num_bootstraps,
+            results_dir=saveto
+        )
 
         if external_split is None:
             return experiment
         else:
-            external_split, task_info = SplitFactory.from_local(external_split, task_config)
-            external_split.remove_all_folds()
-            external_split.assign_folds(num_folds=internal_dataset.num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
-
-            # Load external dataset        
-            external_dataset = DatasetFactory.from_slide_embeddings(split = external_split,
-                                                                    task_name = task_info['task_col'],
-                                                                    pooled_embeddings_dir = external_pooled_embeddings_dir,
-                                                                    patch_embeddings_dirs = patch_embeddings_dirs,
-                                                                    combine_slides_per_patient = combine_slides_per_patient,
-                                                                    model_name = model_name,
-                                                                    gpu = gpu)
-            
-            return GeneralizabilityExperimentWrapper(experiment,
-                                                     external_dataset = external_dataset,
-                                                    test_external_only = True,
-                                                    saveto = external_saveto)
+            external_dataset = ExperimentFactory._prepare_external_dataset(
+                external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+            return GeneralizabilityExperimentWrapper(
+                experiment,
+                external_dataset=external_dataset,
+                test_external_only=True,
+                saveto=external_saveto
+            )
 
     @staticmethod
     def finetune(split: str,
@@ -480,6 +431,57 @@ class ExperimentFactory:
             
             experiment.train()
             experiment.test()
+            
+    @staticmethod
+    def _prepare_internal_dataset(split_path: str,
+                                  task_config: str,
+                                  saveto: str,
+                                  pooled_embeddings_dir: str,
+                                  patch_embeddings_dirs: list[str],
+                                  combine_slides_per_patient: bool,
+                                  model_name: str,
+                                  gpu: int):
+        """
+        Helper method to prepare the internal dataset from slide embeddings.
+        """
+        split, task_info = SplitFactory.from_local(split_path, task_config)
+        split.save(os.path.join(saveto, 'split.csv'), row_divisor='slide_id')  # Save split to experiment folder for future reference
+        dataset = DatasetFactory.from_slide_embeddings(
+            split=split,
+            task_name=task_info['task_col'],
+            pooled_embeddings_dir=pooled_embeddings_dir,
+            patch_embeddings_dirs=patch_embeddings_dirs,
+            combine_slides_per_patient=combine_slides_per_patient,
+            model_name=model_name,
+            gpu=gpu
+        )
+        return split, task_info, dataset
+
+    @staticmethod
+    def _prepare_external_dataset(external_split_path: str,
+                                  task_config: str,
+                                  internal_num_folds: int,
+                                  patch_embeddings_dirs: list[str],
+                                  combine_slides_per_patient: bool,
+                                  external_pooled_embeddings_dir: str,
+                                  model_name: str,
+                                  gpu: int):
+        """
+        Helper method to prepare the external dataset from slide embeddings for generalizability experiments.
+        """
+        external_split, task_info = SplitFactory.from_local(external_split_path, task_config)
+        external_split.remove_all_folds()
+        external_split.assign_folds(num_folds=internal_num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
+        external_dataset = DatasetFactory.from_slide_embeddings(
+            split=external_split,
+            task_name=task_info['task_col'],
+            pooled_embeddings_dir=external_pooled_embeddings_dir,
+            patch_embeddings_dirs=patch_embeddings_dirs,
+            combine_slides_per_patient=combine_slides_per_patient,
+            model_name=model_name,
+            gpu=gpu
+        )
+        return external_dataset
 
 ############################################################################################################
 # Some helper functions
