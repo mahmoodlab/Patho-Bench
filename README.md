@@ -48,7 +48,7 @@ Patho-Bench can be used in two ways:
 2. **[Advanced](https://github.com/mahmoodlab/Patho-Bench/tree/main/advanced_usage):** Large-scale benchmarking using automated scripts
 
 ## 🔨 Basic Usage: Importing and using Patho-Bench in your custom workflows
-Running any of the evaluation frameworks is straightforward (see example below). Define general-purpose arguments for setting up the experiment and framework-specific arguments. For a detailed introduction, follow our end-to-end [tutorial](https://github.com/mahmoodlab/Patho-Bench/blob/main/tutorial/Mutation-Prediction-with-Patho-Bench.ipynb).
+Running any of the evaluation frameworks is straightforward (see example below). Define general-purpose arguments for setting up the experiment and framework-specific arguments. For a detailed introduction, follow our end-to-end [tutorial](https://github.com/mahmoodlab/Patho-Bench/blob/main/tutorial/tutorial.ipynb).
 
 ```python
 from patho_bench.ExperimentFactory import ExperimentFactory # Make sure you have installed Patho-Bench and this imports correctly
