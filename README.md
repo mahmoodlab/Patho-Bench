@@ -71,8 +71,8 @@ experiment = ExperimentFactory.linprobe(
                     combine_slides_per_patient = False,
                     cost = 1,
                     balanced = False,
-                    patch_embeddings_dirs = '/media/ssd1/cptac_ccrcc/20x_512px_0px_overlap/features_conch_v15',
-                    model_name = model_name,                    
+                    patch_embeddings_dirs = '/media/ssd1/cptac_ccrcc/20x_512px_0px_overlap/features_conch_v15', # Can be omitted if pooled features are already available
+                    model_name = model_name, # Can be omitted if pooled features are already available
                 )
 experiment.train()
 experiment.test()
