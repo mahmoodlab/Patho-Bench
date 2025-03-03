@@ -5,32 +5,15 @@ import datasets
 from patho_bench.datasets.DataSplit import DataSplit
 
 
-class SplitFactory:
+class SplitFactory:    
     @staticmethod
-    def from_hf(saveto, source, task):
-        '''
-        Returns the datasplit from HuggingFace.
-        
-        Args:
-            saveto (str): Path to save the split
-            source (str): Name of source dataset
-            task (str): Name of task
-            
-        Returns:
-            split (DataSplit): Split object
-        '''
-        path_to_split, path_to_config = SplitFactory._download_assets(saveto, source, task)
-        return SplitFactory.from_local(path_to_split, path_to_config, task)
-    
-    @staticmethod
-    def from_local(path_to_split, path_to_config, task):
+    def from_local(path_to_split, path_to_config):
         '''
         Returns the datasplit from a local path.
         
         Args:
             path_to_split (str): Path to the split
             path_to_config (str): Path to the task config file
-            task (str): Name of task
             
         Returns:
             split (DataSplit): Split object
@@ -43,11 +26,11 @@ class SplitFactory:
         split = DataSplit(path = path_to_split,
                         id_col = task_info['sample_col'],
                         attr_cols = task_info['extra_cols'] + ['slide_id'],
-                        label_cols = [task])
+                        label_cols = [task_info['task_col']])
         return split, task_info
     
     @staticmethod
-    def _download_assets(saveto, source, task):
+    def from_hf(saveto, source, task):
         '''
         Downloads the split for a given source and task if it does not exist locally.
         
@@ -108,7 +91,7 @@ class SplitFactory:
             assert saveto is not None, "saveto must be provided if path_to_config is None."
             assert source is not None, "source must be provided if path_to_config is None."
             assert task is not None, "task must be provided if path_to_config is None."
-            _, path_to_config = SplitFactory._download_assets(saveto, source, task)
+            _, path_to_config = SplitFactory.from_hf(saveto, source, task)
             
         with open(path_to_config, 'r') as task_info:
             task_info = yaml.safe_load(task_info)

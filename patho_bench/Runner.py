@@ -32,7 +32,7 @@ class Runner:
         self.model_name = args.model_name
         self.combine_slides_per_patient = args.combine_slides_per_patient
         self.hyperparams_yaml = args.hyperparams_yaml
-        self.pooled_dirs_root = args.pooled_dirs_root
+        self.pooled_dirs_yaml = args.pooled_dirs_yaml
         self.splits_root = args.splits_root
         self.patch_dirs_yaml = args.patch_dirs_yaml
         self.gpu = args.gpu
@@ -101,16 +101,16 @@ class Runner:
             command_pieces = []
             for task_code in task_codes.split(" "):
                 single_command = (
-                    f"python ../patho_bench/scripts/run_single_task.py "
+                    f"python ../patho_bench/scripts/sweep_single_task.py "
                     f"--experiment_type {self.experiment_type} "
                     f"--model_name {self.model_name} "
                     f"--task_code {task_code} "
                     f"--combine_slides_per_patient {self.combine_slides_per_patient} "
                     f"--saveto {self.saveto} "
                     f"--hyperparams_yaml {self.hyperparams_yaml} "
-                    f"--pooled_dirs_root {self.pooled_dirs_root} "
-                    f"--splits_root {self.splits_root} "
+                    f"--pooled_dirs_yaml {self.pooled_dirs_yaml} "
                     f"--patch_dirs_yaml {self.patch_dirs_yaml} "
+                    f"--splits_root {self.splits_root} "
                     f"--gpu {self.gpu}"
                 )
                 command_pieces.append(single_command)
