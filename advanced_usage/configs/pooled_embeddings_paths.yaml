@@ -1,0 +1,136 @@
+# This dict of paths is used to specify the location of the pooled embeddings for each dataset and slide-level model.
+# The path to this file corresponds to the pooled_dirs_yaml argument in the run.py script.
+# Below, we show a subset of tasks and models evaluated in the THREADS paper (https://arxiv.org/pdf/2501.16652).
+
+bcnb:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+boehmk_:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+bracs:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_brca:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_ccrcc:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_coad:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_gbm:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_hnsc:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_lscc:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_luad:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+cptac_pda:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+ebrains:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+imp:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+mbc_:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+mut-het-rcc:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+nadt:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+natbrca:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+ovarian:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+panda:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+sr386_:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+mgb_lung:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''
+mgb_brca:
+  chief: ''
+  gigapath: ''
+  prism: ''
+  threads: ''
+  titan: ''

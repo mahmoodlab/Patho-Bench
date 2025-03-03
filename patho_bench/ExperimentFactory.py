@@ -363,72 +363,74 @@ class ExperimentFactory:
     
     @staticmethod
     def sweep(experiment_type: str,
-              model_name: str,
-              task_code: str,
+              split: str,
+              task_config: str,
+              saveto_root: str,
               combine_slides_per_patient: bool,
-              saveto: str,
               sweep_over: dict[list],
-              splits_root: str,
-              pooled_dirs_root: str = None,
-              patch_dirs_dict: str = None,
-              path_to_split: str = None,
-              path_to_external_split: str = None,
-              path_to_task_config: str = None,
-              gpu = -1):
+              gpu: int = -1,
+              pooled_embeddings_dir: str = None,
+              patch_embeddings_dirs: list[str] = None,
+              model_name: str = None,
+              external_split: str = None,
+              external_pooled_embeddings_dir: str = None,
+              external_saveto: str = None,
+              num_bootstraps: int = 100):
         '''
         Run a hyperparameter sweep for a given experiment configuration.
-        
+
         Args:
-            experiment_type (str): Type of experiment to run
-            model_name (str): Name of model to use
-            task_code (str): Task code in format datasource--task_name or train_datasource==test_datasource--task_name
-            combine_slides_per_patient (bool): Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently
-            saveto (str): Path to save the results
-            sweep_over (dict[list]): Dictionary of hyperparameters to sweep over
-            splits_root (str): Path to root folder where splits are automatically saved from HuggingFace.
-            pooled_dirs_root (str): Path to root folder where pooled embeddings are saved. Subdirectories are automatically created for each datasource and pooling type. Not needed for finetuning.
-            patch_dirs_dict (dict[str or list]): Dictionary of paths to patch embeddings, indexed by data source and patch encoder.
-            gpu (int): GPU to use for pooling. If -1, the best available GPU is used.
+            experiment_type (str): Type of experiment to run. Must be one of "finetune", "linprobe", "retrieval", or "coxnet".
+            split: str, path to local split file.
+            task_config: str, path to task config file.
+            saveto: str, path to save the results
+            combine_slides_per_patient: bool, Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.
+            sweep_over (dict[list]): Dictionary of hyperparameters to sweep over.
+            gpu: int, GPU id. If -1, the best available GPU is used.
+            pooled_embeddings_dir: str, path to folder containing pre-pooled embeddings (slide-level or patient-level). If empty, must provide patch_embeddings_dirs.
+            patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
+            model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            external_split: str, path to local split file for external testing.
+            external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
+            external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
+            num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        assert patch_dirs_dict is not None or patch_dirs_func is not None, 'One of patch_dirs_dict or patch_dirs_func must be provided.'
-        train_source, test_source, task_name = parse_task_code(task_code) # Parse task_code into train_source, test_source, and task_name
-        patch_embeddings_dirs = make_list(patch_dirs_dict[train_source][model_name])
-        if test_source:
-            patch_embeddings_dirs += make_list(patch_dirs_dict[test_source][model_name])
-        
+        # Build the base arguments to pass to the experiment factory.
         args = {
-            'train_source': train_source,
-            'test_source': test_source,
-            'task_name': task_name,
-            'model_name': model_name,
+            'split': split,
+            'task_config': task_config,
             'combine_slides_per_patient': combine_slides_per_patient,
-            'splits_root': splits_root,
-            'path_to_split': path_to_split,
-            'path_to_external_split': path_to_external_split,
-            'path_to_task_config': path_to_task_config,
+            'gpu': gpu,
+            'pooled_embeddings_dir': pooled_embeddings_dir,
             'patch_embeddings_dirs': patch_embeddings_dirs,
-            'gpu': gpu
+            'model_name': model_name,
+            'external_split': external_split,
+            'external_pooled_embeddings_dir': external_pooled_embeddings_dir,
+            'external_saveto': external_saveto,
+            'num_bootstraps': num_bootstraps            
         }
-        
-        # Iterate over all combinations of hyperparameters
+
+        # Iterate over all combinations of hyperparameters.
         for hyperparams in generate_arg_combinations(sweep_over):
-            args['saveto'] = os.path.join(saveto, train_source, task_name, f'{model_name}_{experiment_type}', generate_exp_id(hyperparams))
+            # Create a unique experiment directory from the hyperparameters.
+            args['saveto'] = os.path.join(saveto_root, f'{model_name}_{experiment_type}', generate_exp_id(hyperparams))
             
             if experiment_type == 'finetune':
-                experiment = ExperimentFactory.finetune(**args, **hyperparams, task_type = 'survival' if task_name in ['OS', 'PFS', 'DSS'] else 'classification') # Infer task type from task name
+                experiment = ExperimentFactory.finetune(**args, **hyperparams)
             elif experiment_type == 'linprobe':
-                experiment = ExperimentFactory.linprobe(**args, **hyperparams, pooled_embeddings_root = pooled_dirs_root)
-            elif experiment_type == 'protonet':
-                experiment = ExperimentFactory.protonet(**args, **hyperparams, pooled_embeddings_root = pooled_dirs_root)
+                experiment = ExperimentFactory.linprobe(**args, **hyperparams)
             elif experiment_type == 'retrieval':
-                experiment = ExperimentFactory.retrieval(**args, **hyperparams, pooled_embeddings_root = pooled_dirs_root)
+                experiment = ExperimentFactory.retrieval(**args, **hyperparams)
             elif experiment_type == 'coxnet':
-                experiment = ExperimentFactory.coxnet(**args,  **hyperparams, pooled_embeddings_root = pooled_dirs_root)
+                experiment = ExperimentFactory.coxnet(**args, **hyperparams)
             else:
-                raise NotImplementedError(f'Experiment type {experiment_type} not recognized. Please choose from "finetune", "linprobe", "protonet", "retrieval", or "coxnet".')
-            
+                raise NotImplementedError(
+                    f'Experiment type {experiment_type} not recognized. Please choose from "finetune", "linprobe", "retrieval", or "coxnet".'
+                )
+
             experiment.train()
             experiment.test()
+
             
     @staticmethod
     def _prepare_internal_dataset(split_path: str,
