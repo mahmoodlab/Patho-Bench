@@ -118,7 +118,7 @@ if __name__ == '__main__':
         with open(args.model_kwargs_yaml, 'r') as f:
             model_kwargs = yaml.safe_load(f)
     else:
-        model_kwargs = None
+        model_kwargs = {}
         
     ###################################################################
     # Run the sweep
