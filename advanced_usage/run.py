@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--tmux_id", type=str, help="Optional tmux session name. If not provided, use the study_id.")
     parser.add_argument("--conda_venv", type=str, default='', help="Name of the conda venv to use within each tmux pane.")
     parser.add_argument("--venv", type=str, default='', help="Path to the non-conda virtual environment to use within each tmux pane. Format: /path/to/venv/bin/activate")
-    parser.add_argument("--delay_factor", type=float, default=2, help="Factor by which to delay each pane. Pane i is delayed by i**delay_factor seconds.")
+    parser.add_argument("--delay_interval", type=float, default=2, help="Factor by which to delay each pane. Pane i is delayed by i**delay_interval seconds.")
     parser.add_argument("--global_delay", type=int, default=0, help="Delay the whole study in minutes.")
     parser.add_argument('--gpu', type=int, default=-1, help='GPU to use for pooling. If -1, the best available GPU is used.')
     args = parser.parse_args()

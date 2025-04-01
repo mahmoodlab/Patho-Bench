@@ -37,7 +37,7 @@ class Runner:
         self.patch_dirs_yaml = args.patch_dirs_yaml
         self.gpu = args.gpu
         self.global_delay = args.global_delay
-        self.delay_factor = args.delay_factor
+        self.delay_interval = args.delay_interval
         self.preserve = args.preserve
 
         # Convert self.model_name to list if it's a single string
@@ -206,7 +206,7 @@ class Runner:
             # Add a delay to each pane to avoid overloading the system
             self.run_tmux_command(
                 f"tmux send-keys -t {self.session_name}:1.{i} "
-                f"'sleep {int(i**self.delay_factor) + self.global_delay * 60}' C-m"
+                f"'sleep {int(i*self.delay_interval) + self.global_delay * 60}' C-m"
             )
 
             # Update progress file to reflect running/success/error states
