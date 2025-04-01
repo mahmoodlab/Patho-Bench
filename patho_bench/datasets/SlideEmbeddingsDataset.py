@@ -15,7 +15,7 @@ class SlideEmbeddingsDataset(BaseDataset):
         
         Args:
             split (BaseSplit): Split object
-            load_from (str or list): Path to directory containing h5 files or list of paths to h5 files
+            load_from (str or list): One or more directories containing h5 files with pooled sample embeddings
         '''
         super().__init__(split)
         self.load_from = load_from

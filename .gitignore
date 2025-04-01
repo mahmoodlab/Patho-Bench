@@ -10,6 +10,7 @@ artifacts/
 _test*/
 _deprecated*
 _tutorial*/
+*_.yaml
 
 *.pt
 *.pth

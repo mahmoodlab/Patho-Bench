@@ -48,28 +48,31 @@ Patho-Bench can be used in two ways:
 2. **[Advanced](https://github.com/mahmoodlab/Patho-Bench/tree/main/advanced_usage):** Large-scale benchmarking using automated scripts
 
 ## 🔨 Basic Usage: Importing and using Patho-Bench in your custom workflows
-Running any of the evaluation frameworks is straightforward (see example below). Define general-purpose arguments for setting up the experiment and framework-specific arguments. For a detailed introduction, follow our end-to-end [tutorial](https://github.com/mahmoodlab/Patho-Bench/blob/main/tutorial/Mutation-Prediction-with-Patho-Bench.ipynb).
+Running any of the evaluation frameworks is straightforward (see example below). Define general-purpose arguments for setting up the experiment and framework-specific arguments. For a detailed introduction, follow our end-to-end [tutorial](https://github.com/mahmoodlab/Patho-Bench/blob/main/tutorial/tutorial.ipynb).
 
 ```python
-from patho_bench.ExperimentFactory import ExperimentFactory # Make sure you have installed Patho-Bench and this imports correctly
+import os
+from patho_bench.SplitFactory import SplitFactory
+from patho_bench.ExperimentFactory import ExperimentFactory
 
 model_name = 'titan'
 train_source = 'cptac_ccrcc' 
 task_name = 'BAP1_mutation'
 
-# Initialize the experiment
-experiment = ExperimentFactory.linprobe( # This is linear probing, but similar APIs are available for coxnet, protonet, retrieval, and finetune
-                    model_name = model_name,
-                    train_source = train_source,
-                    test_source = None, # Leave as default (None) to automatically use the test split of the training source
-                    task_name = task_name,
-                    patch_embeddings_dirs = '/path/to/job_dir/20x_512px_0px_overlap/features_conch_v15', # Can be list of paths if patch features are split across multiple directories. See NOTE below.
-                    pooled_embeddings_root = './_test_pooled_features',
-                    splits_root = './_test_splits', # Splits are downloaded here from HuggingFace. You can also provide your own splits using the path_to_split and path_to_task_config arguments
-                    combine_slides_per_patient = False, # Only relevant for patient-level tasks with multiple slides per patient. See NOTE below.
+# For this task, we will automatically download the split and task config from HuggingFace.
+path_to_split, path_to_task_config = SplitFactory.from_hf('./_tutorial_splits', train_source, task_name)
+
+# Now we can run the experiment
+experiment = ExperimentFactory.linprobe(
+                    split = path_to_split,
+                    task_config = path_to_task_config,
+                    pooled_embeddings_dir = os.path.join('./_tutorial_pooled_features', model_name, train_source, 'by_case_id'), # This task uses case-level pooling
+                    saveto = f'./_tutorial_linprobe/{train_source}/{task_name}/{model_name}',
+                    combine_slides_per_patient = False,
                     cost = 1,
                     balanced = False,
-                    saveto = './_test_linprobe'
+                    patch_embeddings_dirs = '/media/ssd1/cptac_ccrcc/20x_512px_0px_overlap/features_conch_v15', # Can be omitted if pooled features are already available
+                    model_name = model_name, # Can be omitted if pooled features are already available
                 )
 experiment.train()
 experiment.test()
