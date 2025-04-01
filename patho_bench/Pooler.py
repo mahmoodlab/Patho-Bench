@@ -50,7 +50,6 @@ class Pooler:
             sample = self.dataset[sample_id]            
             if sample['id'] is None:
                 continue # Skip because could not load the patch features for this sample
-            cleaned_sample = self.prepare_slide_encoder_input_batch(self.dataset.collate_fn([sample])) # Collate and clean for forward pass
             
             # Load model if not already loaded
             if self.model is None:
@@ -58,11 +57,17 @@ class Pooler:
             
             # Try running on GPU, if out of memory, retry on CPU
             try:
+                cleaned_sample = self.prepare_slide_encoder_input_batch(self.dataset.collate_fn([sample])) # Collate and clean for forward pass
                 loop.set_postfix_str(f"Running on GPU {self.device}...")
                 if isinstance(self.model, torch.nn.Module):
                     self.model = self.model.to(f'cuda:{self.device}')
                 with torch.amp.autocast('cuda', dtype = self.model.precision, enabled = self.model.precision in [torch.bfloat16, torch.float16]):
                     pooled_feature = self.pool(self.model, cleaned_sample, f'cuda:{self.device}')
+                    
+                # Save as h5
+                with h5py.File(os.path.join(self.save_path, f"{sample['id']}.h5"), 'w') as f:
+                    f.create_dataset('features', data=pooled_feature.float().cpu().numpy())
+                    
             except RuntimeError as e:
                 if "out of memory" in str(e).lower():
                     loop.set_postfix_str("Out of memory on GPU, retrying on CPU...")
@@ -70,11 +75,8 @@ class Pooler:
                     with torch.amp.autocast('cpu', dtype = self.model.precision, enabled = self.model.precision in [torch.bfloat16, torch.float16]):
                         pooled_feature = self.pool(self.model, cleaned_sample, 'cpu')
                 else:
-                    raise e
-
-            # Save as h5
-            with h5py.File(os.path.join(self.save_path, f"{sample['id']}.h5"), 'w') as f:
-                f.create_dataset('features', data=pooled_feature.float().cpu().numpy())
+                    print(f'\033[31mError processing patch feats for {sample_id}\033[0m')
+                    # raise Exception(f"Error processing patch feats for {sample_id}: {e}")
     
     @staticmethod
     def prepare_slide_encoder_input_batch(sample_collated):
