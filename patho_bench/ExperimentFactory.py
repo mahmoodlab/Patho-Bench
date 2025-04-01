@@ -36,6 +36,7 @@ class ExperimentFactory:
                  external_saveto: str = None,
                  patch_embeddings_dirs: list[str] = None,
                  model_name: str = None,
+                 model_kwargs: dict = {},
                  num_bootstraps: int = 100): 
         '''
         Create linear probe experiment using slide-level embeddings.
@@ -54,10 +55,11 @@ class ExperimentFactory:
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
         
         # Initialize experiment
         experiment = LinearProbeExperiment(
@@ -77,7 +79,7 @@ class ExperimentFactory:
         else:
             external_dataset = ExperimentFactory._prepare_external_dataset(
                 external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
-                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, model_kwargs, gpu)
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
@@ -100,6 +102,7 @@ class ExperimentFactory:
                  external_saveto: str = None,
                  patch_embeddings_dirs: list[str] = None,
                  model_name: str = None,
+                 model_kwargs: dict = {},
                  num_bootstraps: int = 100): 
         '''
         Create retrieval experiment using slide-level embeddings.
@@ -118,10 +121,11 @@ class ExperimentFactory:
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
         
         # Initialize experiment
         experiment = RetrievalExperiment(
@@ -141,7 +145,7 @@ class ExperimentFactory:
         else:
             external_dataset = ExperimentFactory._prepare_external_dataset(
                 external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
-                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, model_kwargs, gpu)
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
@@ -163,6 +167,7 @@ class ExperimentFactory:
                external_saveto: str=None,
                patch_embeddings_dirs: list[str]=None,
                model_name: str=None,
+               model_kwargs: dict={},
                num_bootstraps: int=100):
         '''
         Create CoxNet experiment using slide-level embeddings.
@@ -181,10 +186,11 @@ class ExperimentFactory:
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, gpu)
+            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
         
         # Initialize experiment
         experiment = CoxNetExperiment(
@@ -203,7 +209,7 @@ class ExperimentFactory:
         else:
             external_dataset = ExperimentFactory._prepare_external_dataset(
                 external_split, task_config, internal_dataset.num_folds, patch_embeddings_dirs,
-                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, gpu)
+                combine_slides_per_patient, external_pooled_embeddings_dir, model_name, model_kwargs, gpu)
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
@@ -434,7 +440,8 @@ class ExperimentFactory:
                                   patch_embeddings_dirs: list[str],
                                   combine_slides_per_patient: bool,
                                   model_name: str,
-                                  gpu: int):
+                                  model_kwargs: dict = {},
+                                  gpu: int = -1):
         """
         Helper method to prepare the internal dataset from slide embeddings.
         """
@@ -447,6 +454,7 @@ class ExperimentFactory:
             patch_embeddings_dirs=patch_embeddings_dirs,
             combine_slides_per_patient=combine_slides_per_patient,
             model_name=model_name,
+            model_kwargs=model_kwargs,
             gpu=gpu
         )
         return split, task_info, dataset
@@ -459,7 +467,8 @@ class ExperimentFactory:
                                   combine_slides_per_patient: bool,
                                   external_pooled_embeddings_dir: str,
                                   model_name: str,
-                                  gpu: int):
+                                  model_kwargs: dict = {},
+                                  gpu: int = -1):
         """
         Helper method to prepare the external dataset from slide embeddings for generalizability experiments.
         """
@@ -473,6 +482,7 @@ class ExperimentFactory:
             patch_embeddings_dirs=patch_embeddings_dirs,
             combine_slides_per_patient=combine_slides_per_patient,
             model_name=model_name,
+            model_kwargs=model_kwargs,
             gpu=gpu
         )
         return external_dataset

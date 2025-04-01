@@ -10,12 +10,13 @@ Used by DatasetFactory to pool features for slide-level or patient-level dataset
 """
 
 class Pooler:
-    def __init__(self, patch_embeddings_dataset, model_name, save_path, device):
+    def __init__(self, patch_embeddings_dataset, model_name, model_kwargs, save_path, device):
         
         # Load patch features from split
         self.dataset = patch_embeddings_dataset
         
         self.model_name = model_name
+        self.model_kwargs = model_kwargs
         self.save_path = save_path
         os.makedirs(self.save_path, exist_ok=True)
         self.device = device
@@ -26,7 +27,7 @@ class Pooler:
         '''
         Load the frozen slide encoder and save its architecture.
         '''
-        self.model = encoder_factory(self.model_name, freeze=True)
+        self.model = encoder_factory(self.model_name, freeze=True, **self.model_kwargs)
         # Save model architecture
         with open(os.path.join(self.save_path, '_model.txt'), 'w') as f:
             f.write(repr(self.model))

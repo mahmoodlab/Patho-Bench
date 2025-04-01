@@ -44,6 +44,7 @@ class DatasetFactory:
                                   patch_embeddings_dirs = None,
                                   combine_slides_per_patient = None,
                                   model_name = None,
+                                  model_kwargs = {},
                                   gpu = -1,
                                   **kwargs):
         '''
@@ -56,6 +57,7 @@ class DatasetFactory:
             patch_embeddings_dirs (list): List of directories containing patch embeddings
             combine_slides_per_patient (bool): Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently and take mean (late fusion).
             model_name (str): Name of the model used for pooling
+            model_kwargs (dict): Optional kwargs for initializing the model (e.g. an ABMIL model).
             gpu (int): GPU to use for pooling. If -1, the best available GPU is used.
         '''
         
@@ -64,6 +66,7 @@ class DatasetFactory:
             print('\033[94m' + f'Pooling features to {pooled_embeddings_dir}, using {model_name}...' + '\033[0m')
             pooler = Pooler(patch_embeddings_dataset = DatasetFactory._patch_embeddings_dataset(split, patch_embeddings_dirs, combine_slides_per_patient, bag_size = None),
                                     model_name = model_name,
+                                    model_kwargs = model_kwargs,
                                     save_path = pooled_embeddings_dir,
                                     device = GPUManager.get_best_gpu(min_mb=500) if gpu == -1 else gpu)
             pooler.run()
