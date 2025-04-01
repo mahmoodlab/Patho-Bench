@@ -86,8 +86,8 @@ class BaseExperiment(ConfigMixin):
         '''
         summary = {}
         for key in all_scores_across_folds[0].keys():
-            mean = np.mean([score[key] for score in all_scores_across_folds])
-            std = np.std([score[key] for score in all_scores_across_folds])
+            mean = np.mean([score[key] for score in all_scores_across_folds if score[key] is not None])
+            std = np.std([score[key] for score in all_scores_across_folds if score[key] is not None])
             se = std / np.sqrt(len(all_scores_across_folds))
             summary[key] = {
                 'mean': mean,
