@@ -19,6 +19,8 @@ from trident.slide_encoder_models.load import encoder_factory
 This file contains the ExperimentFactory class which is responsible for instantiating the appropriate experiment object.
 """
 
+COMBINE_TRAIN_VAL = False
+
 class ExperimentFactory:
                 
     @staticmethod
@@ -64,7 +66,7 @@ class ExperimentFactory:
         # Initialize experiment
         experiment = LinearProbeExperiment(
             dataset=internal_dataset,
-            combine_train_val=False,
+            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             num_classes=len(task_info['label_dict']),
             num_bootstraps=num_bootstraps,
@@ -130,7 +132,7 @@ class ExperimentFactory:
         # Initialize experiment
         experiment = RetrievalExperiment(
             dataset=internal_dataset,
-            combine_train_val=False,
+            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             num_classes=len(task_info['label_dict']),
             num_bootstraps=num_bootstraps,
@@ -195,7 +197,7 @@ class ExperimentFactory:
         # Initialize experiment
         experiment = CoxNetExperiment(
             dataset=internal_dataset,
-            combine_train_val=False,
+            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             alpha=alpha,
             l1_ratio=l1_ratio,
@@ -341,7 +343,7 @@ class ExperimentFactory:
         experiment_kwargs = {
             'task_type': task_info['task_type'],
             'dataset': dataset,
-            'combine_train_val': False,
+            'combine_train_val': COMBINE_TRAIN_VAL,
             'batch_size': batch_size,
             'model_constructor': TrainableSlideEncoder,
             'model_kwargs': model_kwargs,
