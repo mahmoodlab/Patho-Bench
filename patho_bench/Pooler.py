@@ -69,7 +69,7 @@ class Pooler:
                 with h5py.File(os.path.join(self.save_path, f"{sample['id']}.h5"), 'w') as f:
                     f.create_dataset('features', data=pooled_feature.float().cpu().numpy())
                     
-            except RuntimeError as e:
+            except Exception as e:
                 if "out of memory" in str(e).lower():
                     loop.set_postfix_str("Out of memory on GPU, retrying on CPU...")
                     self.model = self.model.to('cpu')
