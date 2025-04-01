@@ -227,6 +227,7 @@ class ExperimentFactory:
                  optimizer_type: str,
                  balanced: bool,
                  save_which_checkpoints: str,
+                 model_kwargs: dict = {},
                  layer_decay = None,
                  gpu = -1,
                  batch_size = 1, # Only batch_size = 1 is supported for finetuning for now
@@ -254,8 +255,8 @@ class ExperimentFactory:
             optimizer_type: str, type of optimizer. Can be 'AdamW' or 'gigapath'
             balanced: bool, whether to use balanced class weights
             save_which_checkpoints: str, which checkpoints to save
+            model_kwargs: dict, additional arguments to pass to the model constructor
             layer_decay: float or None, layer decay for gigapath optimizer
-            
             gpu: int, GPU id. If -1, the best available GPU is used.
             batch_size: int, batch size. Only batch_size = 1 is supported for finetuning for now
             external_split: str, path to local split file for external testing.
@@ -289,17 +290,7 @@ class ExperimentFactory:
             loss = nn.CrossEntropyLoss()
         
         ###### Configure model ################################################################
-        if model_name.startswith('abmil'):
-            slide_encoder = encoder_factory(model_name,
-                                            pretrained = False,
-                                            freeze=False,
-                                            input_feature_dim = 768,
-                                            n_heads = 1,
-                                            head_dim = 512,
-                                            dropout = 0.25,
-                                            gated = False)
-        else:
-            slide_encoder = encoder_factory(model_name, pretrained = False if 'randominit' in model_name else True, freeze=False)
+        slide_encoder = encoder_factory(model_name, pretrained = False if 'randominit' in model_name or model_name.startswith('abmil') else True, freeze=False, **model_kwargs)
 
         model_kwargs = {
                         'slide_encoder': slide_encoder,
@@ -372,6 +363,7 @@ class ExperimentFactory:
               pooled_embeddings_dir: str = None,
               patch_embeddings_dirs: list[str] = None,
               model_name: str = None,
+              model_kwargs: dict = {},
               external_split: str = None,
               external_pooled_embeddings_dir: str = None,
               external_saveto: str = None,
@@ -390,6 +382,7 @@ class ExperimentFactory:
             pooled_embeddings_dir: str, path to folder containing pre-pooled embeddings (slide-level or patient-level). If empty, must provide patch_embeddings_dirs.
             patch_embeddings_dirs: list of str, paths to folder(s) containing patch embeddings for given experiment. Only needed if pooled_embeddings_dir is empty.
             model_name: str, name of the model to use for pooling. Only needed if pooled_embeddings_dir is empty.
+            model_kwargs: dict, additional arguments to pass to the model constructor.
             external_split: str, path to local split file for external testing.
             external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
@@ -404,6 +397,7 @@ class ExperimentFactory:
             'pooled_embeddings_dir': pooled_embeddings_dir,
             'patch_embeddings_dirs': patch_embeddings_dirs,
             'model_name': model_name,
+            'model_kwargs': model_kwargs,
             'external_split': external_split,
             'external_pooled_embeddings_dir': external_pooled_embeddings_dir,
             'external_saveto': external_saveto,

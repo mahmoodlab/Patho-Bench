@@ -36,6 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--experiment_type', type=str, help='Type of experiment to run')
     parser.add_argument('--model_name', type=str, help='Name of model to use')
+    parser.add_argument('--model_kwargs_yaml', type=SpecialDtypes.none_or_str, default = None, help='Path to YAML file containing optional kwargs for initializing the model (e.g. an ABMIL model).')
     parser.add_argument('--task_code', type=str, help='Task code in format datasource--task_name or train_datasource==test_datasource--task_name')
     parser.add_argument('--combine_slides_per_patient', type=SpecialDtypes.bool, help='Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently. Note that some models e.g. GigaPath require this to be False.')
     parser.add_argument('--saveto', type=str, help='Directory to save the sweep')
@@ -112,6 +113,13 @@ if __name__ == '__main__':
         # Get external saveto
         external_saveto = os.path.join(args.saveto, f'{train_source}=={test_source}', task_name)
         
+    # Load model kwargs if provided
+    if args.model_kwargs_yaml is not None:
+        with open(args.model_kwargs_yaml, 'r') as f:
+            model_kwargs = yaml.safe_load(f)
+    else:
+        model_kwargs = None
+        
     ###################################################################
     # Run the sweep
     ExperimentFactory.sweep(experiment_type = args.experiment_type,
@@ -124,6 +132,7 @@ if __name__ == '__main__':
                             pooled_embeddings_dir = pooled_embeddings_dir,
                             patch_embeddings_dirs = patch_embeddings_dirs,
                             model_name = args.model_name,
+                            model_kwargs = model_kwargs,
                             external_split = path_to_external_split,
                             external_pooled_embeddings_dir = external_pooled_embeddings_dir,
                             external_saveto = external_saveto,

@@ -30,6 +30,7 @@ class Runner:
         self.tasks_yaml = args.tasks_yaml
         self.experiment_type = args.experiment_type
         self.model_name = args.model_name
+        self.model_kwargs_yaml = args.model_kwargs_yaml
         self.combine_slides_per_patient = args.combine_slides_per_patient
         self.hyperparams_yaml = args.hyperparams_yaml
         self.pooled_dirs_yaml = args.pooled_dirs_yaml
@@ -111,6 +112,7 @@ class Runner:
                         f"python ../patho_bench/scripts/sweep_single_task.py "
                         f"--experiment_type {self.experiment_type} "
                         f"--model_name {model} "
+                        f"--model_kwargs_yaml {self.model_kwargs_yaml} "
                         f"--task_code {task_code} "
                         f"--combine_slides_per_patient {self.combine_slides_per_patient} "
                         f"--saveto {self.saveto} "

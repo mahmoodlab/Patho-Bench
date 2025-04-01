@@ -3,6 +3,7 @@
 python run.py \
   --experiment_type linprobe \
   --model_name titan \
+  # --model_kwargs_yaml "configs/abmil_kwargs.yaml" \  # Additional kwargs for model initialization (required for ABMIL)
   --tasks_yaml configs/tasks.yaml \
   --combine_slides_per_patient False \
   --saveto ../artifacts/example_runs/titan_linprobe \
