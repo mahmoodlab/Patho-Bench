@@ -108,11 +108,8 @@ class DatasetFactory:
             split (Split): Split object
             task (str): Name of the task
         '''
-        if task == 'OS': # Overall survival
-            return LabelDataset(split, task_names = ["OS"], extra_attrs = ["OS_event", "OS_days"], dtype = 'int')
-        elif task == 'PFS': # Progression-free survival
-            return LabelDataset(split, task_names = ["PFS"], extra_attrs = ["PFS_event", "PFS_days"], dtype = 'int')
-        elif task == 'DSS': # Disease-specific survival
-            return LabelDataset(split, task_names = ["DSS"], extra_attrs = ["DSS_event", "DSS_days"], dtype = 'int')
-        else:
-            return LabelDataset(split, task_names = [task], dtype = 'int')
+        for prefix in ["OS", "PFS", "DSS"]:
+            if task.startswith(prefix):
+                return LabelDataset(split, task_names = [task], extra_attrs = [f"{task}_event", f"{task}_days"], dtype = 'int')
+
+        return LabelDataset(split, task_names = [task], dtype = 'int')
