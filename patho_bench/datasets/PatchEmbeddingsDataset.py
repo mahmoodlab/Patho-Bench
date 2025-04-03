@@ -122,8 +122,7 @@ class PatchEmbeddingsDataset(BaseDataset):
         attributes = [] # Attributes of each slide
         for slide_id in slide_ids:
             if slide_id not in self.available_slide_paths:
-                print(f"WARNING: Slide {slide_id}.h5 not found in {self.load_from}. Skipping sample {sample_id}.")
-                return {'id': None}
+                raise ValueError(f"Slide {slide_id} not found in {self.load_from}.")
             
             data, attrs = self.load_h5(self.available_slide_paths[slide_id], keys = ['features', 'coords'])
             assets.append(data)
