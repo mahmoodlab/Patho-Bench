@@ -261,7 +261,6 @@ class ExperimentFactory:
                  gpu = -1,
                  batch_size = 1, # Only batch_size = 1 is supported for finetuning for now
                  external_split: str = None,
-                 external_pooled_embeddings_dir: str = None,
                  external_saveto: str = None,
                  num_bootstraps: int = 100):
         '''
@@ -289,13 +288,10 @@ class ExperimentFactory:
             gpu: int, GPU id. If -1, the best available GPU is used.
             batch_size: int, batch size. Only batch_size = 1 is supported for finetuning for now
             external_split: str, path to local split file for external testing.
-            external_pooled_embeddings_dir: str, path to folder containing pooled embeddings for external testing. Only needed if external_split is not None.
             external_saveto: str, path to save the results of external testing. Only needed if external_split is not None.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
         assert batch_size == 1, 'Only batch_size = 1 is supported for finetuning for now'
-        for illegal_arg in [external_split, external_pooled_embeddings_dir, external_saveto]:
-            assert illegal_arg is None, 'Finetuning does not yet support generalizability experiment. Please leave external_split, external_pooled_embeddings_dir, and external_saveto as default (None).'
         
         ###### Get dataset ################################################################
         split, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
@@ -362,24 +358,40 @@ class ExperimentFactory:
             raise NotImplementedError(f'Optimizer type {optimizer_type} not yet implemented. Please choose from "AdamW" or "gigapath".')
         
         ###### Configure experiment ################################################################
-        experiment_kwargs = {
-            'task_type': task_info['task_type'],
-            'dataset': internal_dataset,
-            'batch_size': batch_size,
-            'model_constructor': TrainableSlideEncoder,
-            'model_kwargs': model_kwargs,
-            'num_epochs': num_epochs, # if nshots == 'all' else 500//(nshots * num_classes),
-            'accumulation_steps': gradient_accumulation,
-            'optimizer_config': optimizer_config,
-            'scheduler_config': scheduler_config,
-            'save_which_checkpoints': save_which_checkpoints,
-            'num_bootstraps': num_bootstraps,
-            'precision': slide_encoder.precision,
-            'device': f'cuda:{gpu if gpu != -1 else GPUManager.get_best_gpu(min_mb=500)}',
-            'results_dir': saveto
-        }
-            
-        return FinetuningExperiment(**experiment_kwargs)
+        experiment = FinetuningExperiment(
+            task_type = task_info['task_type'],
+            dataset = internal_dataset,
+            batch_size = batch_size,
+            model_constructor = TrainableSlideEncoder,
+            model_kwargs = model_kwargs,
+            num_epochs = num_epochs, # if nshots == 'all' else 500//(nshots * num_classes),
+            accumulation_steps = gradient_accumulation,
+            optimizer_config = optimizer_config,
+            scheduler_config = scheduler_config,
+            save_which_checkpoints = save_which_checkpoints,
+            num_bootstraps = num_bootstraps,
+            precision = slide_encoder.precision,
+            device = f'cuda:{gpu if gpu != -1 else GPUManager.get_best_gpu(min_mb=500)}',
+            results_dir = saveto
+        )
+        
+        if external_split is None:
+            return experiment
+        else:
+            print('\033[91mWARNING: Generalizability experiment is not yet tested for finetuning. Proceed with caution.\033[0m')
+            external_dataset = ExperimentFactory._prepare_external_dataset(
+                                                                external_split,
+                                                                task_config,
+                                                                internal_dataset.num_folds,
+                                                                patch_embeddings_dirs,
+                                                                combine_slides_per_patient,
+                                                                bag_size = bag_size)
+            return GeneralizabilityExperimentWrapper(
+                experiment,
+                external_dataset=external_dataset,
+                test_external_only=True,
+                saveto=external_saveto
+            )
     
     @staticmethod
     def sweep(experiment_type: str,
@@ -440,6 +452,7 @@ class ExperimentFactory:
             
             if experiment_type == 'finetune':
                 args.pop('pooled_embeddings_dir') # Finetune does not use pooled embeddings
+                args.pop('external_pooled_embeddings_dir') # Finetune does not use pooled embeddings
                 experiment = ExperimentFactory.finetune(**args, **hyperparams)
             elif experiment_type == 'linprobe':
                 experiment = ExperimentFactory.linprobe(**args, **hyperparams)
@@ -505,27 +518,37 @@ class ExperimentFactory:
                                   internal_num_folds: int,
                                   patch_embeddings_dirs: list[str],
                                   combine_slides_per_patient: bool,
-                                  external_pooled_embeddings_dir: str,
-                                  model_name: str,
+                                  external_pooled_embeddings_dir: str = None,
+                                  model_name: str = None,
                                   model_kwargs: dict = {},
+                                  bag_size: int = None,
                                   gpu: int = -1):
         """
-        Helper method to prepare the external dataset from slide embeddings for generalizability experiments.
+        Helper method to prepare the external dataset (all test) from slide or patch embeddings for generalizability experiments.
         """
         external_split, task_info = SplitFactory.from_local(external_split_path, task_config)
         external_split.remove_all_folds()
         external_split.assign_folds(num_folds=internal_num_folds, test_frac=1, val_frac=0, method='monte-carlo')  # Reassign all samples to test
-        external_dataset = DatasetFactory.from_slide_embeddings(
-            split=external_split,
-            task_name=task_info['task_col'],
-            pooled_embeddings_dir=external_pooled_embeddings_dir,
-            patch_embeddings_dirs=patch_embeddings_dirs,
-            combine_slides_per_patient=combine_slides_per_patient,
-            model_name=model_name,
-            model_kwargs=model_kwargs,
-            gpu=gpu
-        )
-        return external_dataset
+        
+        if external_pooled_embeddings_dir is not None:
+            return DatasetFactory.from_slide_embeddings(
+                split=external_split,
+                task_name=task_info['task_col'],
+                pooled_embeddings_dir=external_pooled_embeddings_dir,
+                patch_embeddings_dirs=patch_embeddings_dirs,
+                combine_slides_per_patient=combine_slides_per_patient,
+                model_name=model_name,
+                model_kwargs=model_kwargs,
+                gpu=gpu
+            )
+        else:
+            return DatasetFactory.from_patch_embeddings(
+                split=external_split,
+                task_name=task_info['task_col'],
+                patch_embeddings_dirs=patch_embeddings_dirs,
+                combine_slides_per_patient=combine_slides_per_patient,
+                bag_size=bag_size
+            )
 
 ############################################################################################################
 # Some helper functions
