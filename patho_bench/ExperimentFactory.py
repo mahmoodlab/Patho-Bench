@@ -20,6 +20,7 @@ This file contains the ExperimentFactory class which is responsible for instanti
 """
 
 COMBINE_TRAIN_VAL = False
+TEST_EXTERNAL_ONLY = True
 
 class ExperimentFactory:
                 
@@ -92,7 +93,7 @@ class ExperimentFactory:
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
-                test_external_only=True,
+                test_external_only=TEST_EXTERNAL_ONLY,
                 saveto=external_saveto
             )
     
@@ -165,7 +166,7 @@ class ExperimentFactory:
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
-                test_external_only=True,
+                test_external_only=TEST_EXTERNAL_ONLY,
                 saveto=external_saveto
             )
     
@@ -236,7 +237,7 @@ class ExperimentFactory:
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
-                test_external_only=True,
+                test_external_only=TEST_EXTERNAL_ONLY,
                 saveto=external_saveto
             )
 
@@ -389,7 +390,7 @@ class ExperimentFactory:
             return GeneralizabilityExperimentWrapper(
                 experiment,
                 external_dataset=external_dataset,
-                test_external_only=True,
+                test_external_only=TEST_EXTERNAL_ONLY,
                 saveto=external_saveto
             )
     
