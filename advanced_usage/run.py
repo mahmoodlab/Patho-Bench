@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description="Launch multiple runs in parallel using tmux.")
     parser.add_argument("--experiment_type", type=str, choices=["linprobe", "coxnet", "retrieval", "finetune"], help="Type of experiment to run.")
     parser.add_argument("--model_name", type=str, nargs='+', help="Name(s) of the model(s) to use. Multiple models will run in parallel.")
+    parser.add_argument('--model_kwargs_yaml', type=SpecialDtypes.none_or_str, default = None, help='Path to YAML file containing optional kwargs for initializing the model (e.g. an ABMIL model).')
     parser.add_argument("--tasks_yaml", type=str, default = "./configs/tasks.yaml", help="Path to the YAML file containing the task codes.")
     parser.add_argument('--combine_slides_per_patient', type=SpecialDtypes.bool, help='Whether to combine patches from multiple slides when pooling at case_id level. If False, will pool each slide independently.')
     parser.add_argument("--saveto", type=str, help="Save results to this directory. Basename of this dir will be used as the tmux session name, if --tmux_id is not provided.")

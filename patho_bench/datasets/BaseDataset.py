@@ -25,14 +25,13 @@ class BaseDataset(torch.utils.data.Dataset, ConfigMixin):
         self.num_folds = self.split.num_folds
         self.current_iter = None
         
-    def get_subset(self, iteration, fold, combine_train_val = False):
+    def get_subset(self, iteration, fold):
         '''
         Returns a subset of the dataset for a specific iteration and fold.
 
         Args:
             iteration (int): Index of the iteration
             fold (str): 'train', 'val', or 'test'
-            combine_train_val (bool): If True, combines train and val sets into one set. Defaults to False.
 
         Returns:
             subset (BaseDataset): Subset of the dataset
@@ -40,22 +39,13 @@ class BaseDataset(torch.utils.data.Dataset, ConfigMixin):
         subset = self.copy()
         subset.current_iter = iteration
         subset.data = {sample['id']: sample for sample in self.split.data if sample['folds'][iteration] == fold}   # Filter to samples for this iteration and fold
-        
-        if combine_train_val:
-            if fold == 'train':
-                # Return train and val sets
-                val_data = {sample['id']: sample for sample in self.split.data if sample['folds'][iteration] == 'val'}
-                subset.data.update(val_data)
-            elif fold == 'val':
-                return None
-            
         subset.ids = list(subset.data.keys())
 
         # If dataset has a child_datasets attribute, update child datasets
         if hasattr(subset, 'child_datasets'):
             for dataset_name, dataset in subset.child_datasets.items():
                 assert not hasattr(dataset, 'child_datasets'), f'BaseDataset.get_subset() does not support multiple levels of child datasets. Dataset name: {dataset_name}'
-                subset.child_datasets[dataset_name] = dataset.get_subset(iteration, fold, combine_train_val)
+                subset.child_datasets[dataset_name] = dataset.get_subset(iteration, fold)
         
         if len(subset.ids) == 0:
             return None
@@ -236,21 +226,20 @@ class BaseDataset(torch.utils.data.Dataset, ConfigMixin):
         else:
             raise NotImplementedError(f'Sampler type {sampler} not implemented')
         
-    def get_dataloader(self, current_iter, fold, combine_train_val = False, batch_size = None):
+    def get_dataloader(self, current_iter, fold, batch_size = None):
         '''
         Returns a dataloader for the dataset.
         
         Args:
             current_iter (int): Index of the current iteration
             fold (str): 'train', 'val', or 'test'
-            combine_train_val (bool): If True, combines train and val sets into one set. Defaults to False.
             batch_size (int): Batch size. If None, will pass all samples in a single batch. Defaults to None.
             
         Returns:
             dataloader (torch.utils.data.DataLoader): Dataloader for the dataset
         '''
         
-        subset_dataset = self.get_subset(current_iter, fold, combine_train_val)
+        subset_dataset = self.get_subset(current_iter, fold)
         if subset_dataset is None:
             return None
     

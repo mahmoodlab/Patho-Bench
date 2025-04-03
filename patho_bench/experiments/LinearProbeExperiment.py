@@ -1,6 +1,7 @@
 import os
 from tqdm import tqdm
 from sklearn.linear_model import LogisticRegression
+from patho_bench.datasets.BaseDataset import BaseDataset
 from patho_bench.experiments.utils.ClassificationMixin import ClassificationMixin
 from patho_bench.experiments.BaseExperiment import BaseExperiment
 import json
@@ -11,8 +12,7 @@ Runs linear probing using the sklearn LogisticRegression model.
 
 class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
     def __init__(self,
-                 dataset,
-                 combine_train_val: bool,
+                 dataset: BaseDataset,
                  task_name: str,
                  num_classes: int,
                  num_bootstraps: int,
@@ -27,7 +27,6 @@ class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
 
         Args:
             dataset (BaseDataset): Dataset object
-            combine_train_val (bool): Whether to combine train and val sets for training
             task_name (str): Name of task (must match key in labels dict)
             num_classes (int): Number of classes for each task
             num_bootstraps (int): Number of bootstraps for confidence intervals
@@ -38,7 +37,6 @@ class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
             **kwargs: Additional arguments to save in config.json
         '''
         self.dataset = dataset
-        self.combine_train_val = combine_train_val
         self.task_name = task_name
         self.num_classes = num_classes
         self.num_bootstraps = num_bootstraps
@@ -62,7 +60,7 @@ class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
         for self.current_iter in loop:   # Loop through folds
             
             # Get dataloader for current fold
-            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train', combine_train_val=self.combine_train_val)
+            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train')
             assert len(train_dataloader) == 1, f'Dataloader must return one batch with all samples, got {len(train_dataloader)}'
             all_train_samples = next(iter(train_dataloader))
 
@@ -110,7 +108,7 @@ class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
         loop = tqdm(range(self.dataset.num_folds))
         for self.current_iter in loop:
             # Get dataloader for current fold
-            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, combine_train_val=self.combine_train_val)
+            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split)
             if eval_dataloader is None:
                 print(f'No {split} set found. Skipping...')
                 return  # No data for this fold in the chosen split
