@@ -2,6 +2,7 @@ import os
 import json
 import torch
 from tqdm import tqdm
+from patho_bench.datasets.BaseDataset import BaseDataset
 from patho_bench.experiments.BaseExperiment import BaseExperiment
 from patho_bench.experiments.utils.RetrievalMixin import RetrievalMixin
 from patho_bench.experiments.utils.Retriever import Retriever
@@ -9,8 +10,7 @@ from patho_bench.experiments.utils.Retriever import Retriever
 
 class RetrievalExperiment(RetrievalMixin, BaseExperiment):
     def __init__(self,
-                 dataset,
-                 combine_train_val,
+                 dataset: BaseDataset,
                  task_name,
                  num_classes,
                  num_bootstraps,
@@ -25,7 +25,6 @@ class RetrievalExperiment(RetrievalMixin, BaseExperiment):
 
         Args:
             dataset (BaseDataset): Dataset object
-            combine_train_val (bool): Whether to combine train and validation sets.
             task_name (str): Name of the task.
             num_classes (int): Number of classes.
             num_bootstraps (int): Number of bootstraps for confidence interval estimation.
@@ -36,7 +35,6 @@ class RetrievalExperiment(RetrievalMixin, BaseExperiment):
             **kwargs: Additional arguments to save in config.json.
         """
         self.dataset = dataset
-        self.combine_train_val = combine_train_val
         self.task_name = task_name
         self.num_classes = num_classes
         self.num_bootstraps = num_bootstraps
@@ -58,7 +56,7 @@ class RetrievalExperiment(RetrievalMixin, BaseExperiment):
 
         for self.current_iter in tqdm(range(self.dataset.num_folds), desc="Training"):   # Loop through folds
             # Get dataloader for current fold
-            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train', combine_train_val=self.combine_train_val)
+            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train')
             assert len(train_dataloader) == 1, f'Dataloader must return one batch with all samples, got {len(train_dataloader)}'
             all_train_samples = next(iter(train_dataloader))
 
@@ -95,7 +93,7 @@ class RetrievalExperiment(RetrievalMixin, BaseExperiment):
         loop = tqdm(range(self.dataset.num_folds), desc=f"Evaluating on {split}")
         for self.current_iter in loop:   # Loop through folds
             # Get dataloader for current fold
-            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, combine_train_val=self.combine_train_val)
+            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split)
             if eval_dataloader is None:
                 print(f'No {split} set found. Skipping...')
                 return  # No data for this fold in the chosen split

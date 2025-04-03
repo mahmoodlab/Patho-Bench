@@ -60,13 +60,20 @@ class ExperimentFactory:
             model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
+                                                                                    task_config,
+                                                                                    saveto,
+                                                                                    combine_slides_per_patient,
+                                                                                    COMBINE_TRAIN_VAL,
+                                                                                    patch_embeddings_dirs,
+                                                                                    pooled_embeddings_dir,
+                                                                                    model_name,
+                                                                                    model_kwargs,
+                                                                                    gpu)
         
         # Initialize experiment
         experiment = LinearProbeExperiment(
             dataset=internal_dataset,
-            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             num_classes=len(task_info['label_dict']),
             num_bootstraps=num_bootstraps,
@@ -126,13 +133,20 @@ class ExperimentFactory:
             model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
+                                                                                    task_config,
+                                                                                    saveto,
+                                                                                    combine_slides_per_patient,
+                                                                                    COMBINE_TRAIN_VAL,
+                                                                                    patch_embeddings_dirs,
+                                                                                    pooled_embeddings_dir,
+                                                                                    model_name,
+                                                                                    model_kwargs,
+                                                                                    gpu)
         
         # Initialize experiment
         experiment = RetrievalExperiment(
             dataset=internal_dataset,
-            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             num_classes=len(task_info['label_dict']),
             num_bootstraps=num_bootstraps,
@@ -191,13 +205,20 @@ class ExperimentFactory:
             model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(
-            split, task_config, saveto, pooled_embeddings_dir, patch_embeddings_dirs, combine_slides_per_patient, model_name, model_kwargs, gpu)
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
+                                                                                    task_config,
+                                                                                    saveto,
+                                                                                    combine_slides_per_patient,
+                                                                                    COMBINE_TRAIN_VAL,
+                                                                                    patch_embeddings_dirs,
+                                                                                    pooled_embeddings_dir,
+                                                                                    model_name,
+                                                                                    model_kwargs,
+                                                                                    gpu)
         
         # Initialize experiment
         experiment = CoxNetExperiment(
             dataset=internal_dataset,
-            combine_train_val=COMBINE_TRAIN_VAL,
             task_name=task_info['task_col'],
             alpha=alpha,
             l1_ratio=l1_ratio,
@@ -277,15 +298,15 @@ class ExperimentFactory:
             assert illegal_arg is None, 'Finetuning does not yet support generalizability experiment. Please leave external_split, external_pooled_embeddings_dir, and external_saveto as default (None).'
         
         ###### Get dataset ################################################################
-        split, task_info = SplitFactory.from_local(split, task_config)
-        assert task_info['task_type'] in ['survival', 'classification'], f'Invalid task type: {task_info["task_type"]}. Must be "survival" or "classification".'
-        split.save(os.path.join(saveto, 'split.csv'), row_divisor = 'slide_id') # Save split to experiment folder for future reference
+        split, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
+                                                                                    task_config,
+                                                                                    saveto,
+                                                                                    combine_slides_per_patient,
+                                                                                    COMBINE_TRAIN_VAL,
+                                                                                    patch_embeddings_dirs,
+                                                                                    bag_size = bag_size)
+        
         task_name = task_info['task_col']
-        dataset = DatasetFactory.from_patch_embeddings(split = split,
-                                                        task_name = task_name,
-                                                        patch_embeddings_dirs = patch_embeddings_dirs,
-                                                        combine_slides_per_patient = combine_slides_per_patient,
-                                                        bag_size = bag_size)
 
         ###### Get loss ################################################################
         if task_info['task_type'] == 'survival':
@@ -343,8 +364,7 @@ class ExperimentFactory:
         ###### Configure experiment ################################################################
         experiment_kwargs = {
             'task_type': task_info['task_type'],
-            'dataset': dataset,
-            'combine_train_val': COMBINE_TRAIN_VAL,
+            'dataset': internal_dataset,
             'batch_size': batch_size,
             'model_constructor': TrainableSlideEncoder,
             'model_kwargs': model_kwargs,
@@ -440,27 +460,43 @@ class ExperimentFactory:
     def _prepare_internal_dataset(split_path: str,
                                   task_config: str,
                                   saveto: str,
-                                  pooled_embeddings_dir: str,
-                                  patch_embeddings_dirs: list[str],
                                   combine_slides_per_patient: bool,
-                                  model_name: str,
+                                  combine_train_val: bool,
+                                  patch_embeddings_dirs: list[str],
+                                  pooled_embeddings_dir: str = None,
+                                  model_name: str = None,
                                   model_kwargs: dict = {},
+                                  bag_size: int = None,
                                   gpu: int = -1):
         """
-        Helper method to prepare the internal dataset from slide embeddings.
+        Helper method to prepare the internal dataset from slide embeddings or patch embeddings.
         """
+        # Load split
         split, task_info = SplitFactory.from_local(split_path, task_config)
+        if combine_train_val:
+            split.replace_folds('val', 'train')
         split.save(os.path.join(saveto, 'split.csv'), row_divisor='slide_id')  # Save split to experiment folder for future reference
-        dataset = DatasetFactory.from_slide_embeddings(
-            split=split,
-            task_name=task_info['task_col'],
-            pooled_embeddings_dir=pooled_embeddings_dir,
-            patch_embeddings_dirs=patch_embeddings_dirs,
-            combine_slides_per_patient=combine_slides_per_patient,
-            model_name=model_name,
-            model_kwargs=model_kwargs,
-            gpu=gpu
-        )
+        
+        # Load dataset
+        if pooled_embeddings_dir is not None:
+            dataset = DatasetFactory.from_slide_embeddings(
+                split=split,
+                task_name=task_info['task_col'],
+                pooled_embeddings_dir=pooled_embeddings_dir,
+                patch_embeddings_dirs=patch_embeddings_dirs,
+                combine_slides_per_patient=combine_slides_per_patient,
+                model_name=model_name,
+                model_kwargs=model_kwargs,
+                gpu=gpu
+            )
+        else:
+            dataset = DatasetFactory.from_patch_embeddings(
+                split=split,
+                task_name=task_info['task_col'],
+                patch_embeddings_dirs=patch_embeddings_dirs,
+                combine_slides_per_patient=combine_slides_per_patient,
+                bag_size=bag_size
+            )
         return split, task_info, dataset
 
     @staticmethod

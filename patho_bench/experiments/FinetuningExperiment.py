@@ -13,7 +13,7 @@ from torch.optim import SGD
 from torch.optim import AdamW
 
 # Other imports
-from patho_bench.datasets.CombinedDataset import CombinedDataset
+from patho_bench.datasets.BaseDataset import BaseDataset
 from patho_bench.experiments.BaseExperiment import BaseExperiment
 from patho_bench.experiments.utils.LoggingMixin import LoggingMixin
 from patho_bench.experiments.utils.ClassificationMixin import ClassificationMixin
@@ -30,8 +30,7 @@ This file contains the FinetuningExperiment class, which is used to train and te
 class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, BaseExperiment):
     def __init__(self,
                  task_type: str,
-                 dataset: CombinedDataset,
-                 combine_train_val: bool,
+                 dataset: BaseDataset,
                  batch_size: int,
                  model_constructor: callable,
                  model_kwargs: dict,
@@ -54,7 +53,6 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         Args:
             task_type (str): Type of task. Can be 'classification' or 'survival'.
             dataset (BaseDataset): Dataset object
-            combine_train_val (bool): Whether to combine train and val sets for training.
             batch_size (int): Batch size.
             model_constructor (callable): Model class which can be called to create model instance.
             model_kwargs: Arguments passed to model_constructor.
@@ -74,7 +72,6 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         """
         self.task_type = task_type
         self.dataset = dataset
-        self.combine_train_val = combine_train_val
         self.batch_size = batch_size
         self.model_constructor = model_constructor
         self.model_kwargs = model_kwargs
@@ -98,7 +95,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         
         # Ensure that val set is nonempty if save_which_checkpoints is 'best-val-loss'
         if self.save_which_checkpoints == 'best-val-loss':
-            assert len(self.dataset.get_subset(iteration = 0, fold = 'val', combine_train_val = self.combine_train_val)) > 0, "Val set must be provided if save_which_checkpoints is 'best-val-loss'."
+            assert self.dataset.get_subset(iteration = 0, fold = 'val') is not None, "Split must contain validation samples if save_which_checkpoints is 'best-val-loss'."
 
     def train(self):
         '''
@@ -116,7 +113,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
             self.loggers = self.init_loggers(save_dir = os.path.join(self.results_dir, 'training_metrics', f'fold_{self.current_iter}'))
 
             ### Initialize train and val dataloaders
-            self.dataloaders = {mode: self.dataset.get_dataloader(self.current_iter, mode, combine_train_val=self.combine_train_val, batch_size=self.batch_size) for mode in ['train', 'val']}
+            self.dataloaders = {mode: self.dataset.get_dataloader(self.current_iter, mode, batch_size=self.batch_size) for mode in ['train', 'val']}
             
             ### Initialize model
             self.model = self.model_constructor(**self.model_kwargs, device = self.device)
@@ -192,7 +189,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         loop = tqdm(range(self.dataset.num_folds))
         for self.current_iter in loop:
             ### Load the dataloader for this fold
-            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, self.combine_train_val, batch_size=1)
+            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, batch_size=1)
             if eval_dataloader is None:
                 return
             loop.set_description(f'Running {split} split on {len(eval_dataloader.dataset)} samples')

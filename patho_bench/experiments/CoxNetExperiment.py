@@ -1,7 +1,7 @@
 import os
 from tqdm import tqdm
 from patho_bench.experiments.BaseExperiment import BaseExperiment
-from patho_bench.experiments.utils.ClassificationMixin import ClassificationMixin
+from patho_bench.datasets.BaseDataset import BaseDataset
 from sksurv.linear_model import CoxnetSurvivalAnalysis, CoxPHSurvivalAnalysis
 import json
 import numpy as np
@@ -12,8 +12,7 @@ Runs Cox Proportional Hazards model with elastic net regularization on survival 
 
 class CoxNetExperiment(BaseExperiment):
     def __init__(self,
-                 dataset,
-                 combine_train_val,
+                 dataset: BaseDataset,
                  task_name,
                  alpha,
                  l1_ratio,
@@ -27,7 +26,6 @@ class CoxNetExperiment(BaseExperiment):
 
         Args:
             dataset (BaseDataset): Dataset object
-            combine_train_val (bool): Whether to combine train and val sets for training.
             task_name (str): Name of the task (must match key in labels dict).
             alpha (float): Regularization strength.
             l1_ratio (float): L1 ratio for CoxNet.
@@ -38,7 +36,6 @@ class CoxNetExperiment(BaseExperiment):
         """
         self.results_dir = results_dir
         self.dataset = dataset
-        self.combine_train_val = combine_train_val
         self.task_name = task_name
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -59,7 +56,7 @@ class CoxNetExperiment(BaseExperiment):
         loop = tqdm(range(self.dataset.num_folds), desc='Training')
         for self.current_iter in loop:   # Loop through folds
             # Get dataloader for current fold
-            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train', combine_train_val=self.combine_train_val)
+            train_dataloader = self.dataset.get_dataloader(self.current_iter, 'train')
             assert len(train_dataloader) == 1, f'Dataloader must return one batch with all samples, got {len(train_dataloader)}'
             all_train_samples = next(iter(train_dataloader))
             assert len(all_train_samples['slide']['features'].shape) == 2, f'Features must be 2-dimensional (num_samples x feature_dim), got shape: {all_train_samples["slide"]["features"].shape}'
@@ -106,7 +103,7 @@ class CoxNetExperiment(BaseExperiment):
         loop = tqdm(range(self.dataset.num_folds), desc=f'Evaluating on {split}')
         for self.current_iter in loop: # Loop through folds
             # Get dataloader for current fold
-            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, combine_train_val=self.combine_train_val)
+            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split)
             if eval_dataloader is None:
                 print(f'No {split} set found. Skipping...')
                 return
