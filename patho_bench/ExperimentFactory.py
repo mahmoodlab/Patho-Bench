@@ -298,7 +298,8 @@ class ExperimentFactory:
             loss = nn.CrossEntropyLoss()
         
         ###### Configure model ################################################################
-        slide_encoder = encoder_factory(model_name, pretrained = False if 'randominit' in model_name or model_name.startswith('abmil') else True, freeze=False, **model_kwargs)
+        model_name_clean = model_name.replace("-randominit", "")
+        slide_encoder = encoder_factory(model_name_clean, pretrained = False if 'randominit' in model_name or model_name.startswith('abmil') else True, freeze=False, **model_kwargs)
 
         model_kwargs = {
                         'slide_encoder': slide_encoder,
@@ -418,6 +419,7 @@ class ExperimentFactory:
             args['saveto'] = os.path.join(saveto_root, f'{model_name}_{experiment_type}', generate_exp_id(hyperparams))
             
             if experiment_type == 'finetune':
+                args.pop('pooled_embeddings_dir') # Finetune does not use pooled embeddings
                 experiment = ExperimentFactory.finetune(**args, **hyperparams)
             elif experiment_type == 'linprobe':
                 experiment = ExperimentFactory.linprobe(**args, **hyperparams)

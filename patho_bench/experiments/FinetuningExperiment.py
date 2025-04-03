@@ -13,6 +13,7 @@ from torch.optim import SGD
 from torch.optim import AdamW
 
 # Other imports
+from patho_bench.datasets.CombinedDataset import CombinedDataset
 from patho_bench.experiments.BaseExperiment import BaseExperiment
 from patho_bench.experiments.utils.LoggingMixin import LoggingMixin
 from patho_bench.experiments.utils.ClassificationMixin import ClassificationMixin
@@ -29,7 +30,7 @@ This file contains the FinetuningExperiment class, which is used to train and te
 class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, BaseExperiment):
     def __init__(self,
                  task_type: str,
-                 dataset,
+                 dataset: CombinedDataset,
                  combine_train_val: bool,
                  batch_size: int,
                  model_constructor: callable,
@@ -191,7 +192,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         loop = tqdm(range(self.dataset.num_folds))
         for self.current_iter in loop:
             ### Load the dataloader for this fold
-            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, batch_size=1)
+            eval_dataloader = self.dataset.get_dataloader(self.current_iter, split, self.combine_train_val, batch_size=1)
             if eval_dataloader is None:
                 return
             loop.set_description(f'Running {split} split on {len(eval_dataloader.dataset)} samples')
