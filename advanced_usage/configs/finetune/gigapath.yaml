@@ -20,7 +20,7 @@ OPTIMIZER_TYPE: # Optimizer type
     - gigapath
 
 BALANCED: # Whether to use balanced loss
-    - False
+    - True
 
 BAG_SIZE: # Bag size
     - null
