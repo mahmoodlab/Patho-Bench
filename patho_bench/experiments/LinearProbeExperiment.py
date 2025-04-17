@@ -140,6 +140,18 @@ class LinearProbeExperiment(ClassificationMixin, BaseExperiment):
                 self.classification_metrics(labels, preds, self.num_classes)['overall']
                 for labels, preds in tqdm(bootstraps, desc=f'Computing {self.num_bootstraps} bootstraps')
             ]
+            
+            # Save bootstrapped metrics
+            folder_path = os.path.join(self.results_dir, f"{split}_metrics")
+            os.makedirs(folder_path, exist_ok=True)  
+            for idx, metrics_dict in enumerate(all_scores_across_folds):
+                folder_path_curr = os.path.join(folder_path, f"bootstrap_{idx}")
+                os.makedirs(folder_path_curr, exist_ok=True)  
+
+                file_path = os.path.join(folder_path_curr, "metrics.json")
+                with open(file_path, "w") as f:
+                    json.dump(metrics_dict, f, indent=4)
+
             summary = self.get_95_ci(all_scores_across_folds)
         else:
             # Report mean ± SD
