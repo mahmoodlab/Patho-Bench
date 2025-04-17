@@ -13,6 +13,7 @@ from torch.optim import SGD
 from torch.optim import AdamW
 
 # Other imports
+from patho_bench.datasets.BaseDataset import BaseDataset
 from patho_bench.experiments.BaseExperiment import BaseExperiment
 from patho_bench.experiments.utils.LoggingMixin import LoggingMixin
 from patho_bench.experiments.utils.ClassificationMixin import ClassificationMixin
@@ -29,8 +30,7 @@ This file contains the FinetuningExperiment class, which is used to train and te
 class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, BaseExperiment):
     def __init__(self,
                  task_type: str,
-                 dataset,
-                 combine_train_val: bool,
+                 dataset: BaseDataset,
                  batch_size: int,
                  model_constructor: callable,
                  model_kwargs: dict,
@@ -53,7 +53,6 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         Args:
             task_type (str): Type of task. Can be 'classification' or 'survival'.
             dataset (BaseDataset): Dataset object
-            combine_train_val (bool): Whether to combine train and val sets for training.
             batch_size (int): Batch size.
             model_constructor (callable): Model class which can be called to create model instance.
             model_kwargs: Arguments passed to model_constructor.
@@ -73,7 +72,6 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         """
         self.task_type = task_type
         self.dataset = dataset
-        self.combine_train_val = combine_train_val
         self.batch_size = batch_size
         self.model_constructor = model_constructor
         self.model_kwargs = model_kwargs
@@ -97,7 +95,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         
         # Ensure that val set is nonempty if save_which_checkpoints is 'best-val-loss'
         if self.save_which_checkpoints == 'best-val-loss':
-            assert len(self.dataset.get_subset(iteration = 0, fold = 'val', combine_train_val = self.combine_train_val)) > 0, "Val set must be provided if save_which_checkpoints is 'best-val-loss'."
+            assert self.dataset.get_subset(iteration = 0, fold = 'val') is not None, "Split must contain validation samples if save_which_checkpoints is 'best-val-loss'."
 
     def train(self):
         '''
@@ -115,7 +113,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
             self.loggers = self.init_loggers(save_dir = os.path.join(self.results_dir, 'training_metrics', f'fold_{self.current_iter}'))
 
             ### Initialize train and val dataloaders
-            self.dataloaders = {mode: self.dataset.get_dataloader(self.current_iter, mode, combine_train_val=self.combine_train_val, batch_size=self.batch_size) for mode in ['train', 'val']}
+            self.dataloaders = {mode: self.dataset.get_dataloader(self.current_iter, mode, batch_size=self.batch_size) for mode in ['train', 'val']}
             
             ### Initialize model
             self.model = self.model_constructor(**self.model_kwargs, device = self.device)
@@ -220,7 +218,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
                 all_scores_across_folds.append(scores)
 
         # After collecting all folds, either do bootstrapping or an average across folds
-        summary = self._finalize_metrics(all_labels_across_folds, all_preds_across_folds, all_scores_across_folds)
+        summary = self._finalize_metrics(split, all_labels_across_folds, all_preds_across_folds, all_scores_across_folds)
 
         with open(os.path.join(self.results_dir, f'{split}_metrics_summary.json'), 'w') as f:
             json.dump(summary, f, indent=4)
@@ -237,7 +235,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         labels_all = []
         preds_all = []
 
-        with torch.inference_mode():
+        with torch.inference_mode(), torch.autocast(device_type='cuda', dtype=self.precision, enabled=self.precision != torch.float32):
             for batch in dataloader:
                 if self.task_type == 'classification':
                     label = batch['labels'][self.model_kwargs['task_name']].cpu().int().numpy().tolist()[0]
@@ -282,11 +280,12 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
             scores = self.survival_metrics(labels['survival_event'], labels['survival_time'], preds, saveto = os.path.join(save_dir, "metrics.json"))
             return scores
 
-    def _finalize_metrics(self, labels_across_folds, preds_across_folds, scores_across_folds):
+    def _finalize_metrics(self, split, labels_across_folds, preds_across_folds, scores_across_folds):
         """
         Combine per-fold results or do bootstrapping if single fold
         
         Arguments:
+            split (str): Split name ('val' or 'test')
             labels_across_folds (list): List of labels across folds
             preds_across_folds (list): List of predictions across folds
             scores_across_folds (list): List of scores across folds
@@ -301,6 +300,18 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
                 scores_across_folds = [self.classification_metrics(labels, preds, self.model_kwargs['num_classes'])['overall'] for labels, preds in tqdm(bootstraps, desc=f'Computing {self.num_bootstraps} bootstraps')]
             elif self.task_type == 'survival':
                 scores_across_folds = [self.survival_metrics(labels['survival_event'], labels['survival_time'], preds) for labels, preds in tqdm(bootstraps, desc=f'Computing {self.num_bootstraps} bootstraps')]
+            
+            # Save bootstraps
+            folder_path = os.path.join(self.results_dir, f"{split}_metrics")
+            os.makedirs(folder_path, exist_ok=True)  
+            for idx, metrics_dict in enumerate(scores_across_folds):
+                folder_path_curr = os.path.join(folder_path, f"bootstrap_{idx}")
+                os.makedirs(folder_path_curr, exist_ok=True)  
+
+                file_path = os.path.join(folder_path_curr, "metrics.json")
+                with open(file_path, "w") as f:
+                    json.dump(metrics_dict, f, indent=4)
+
             return self.get_95_ci(scores_across_folds)
         else:
             # Report mean ± SE across folds

@@ -391,7 +391,8 @@ class DataSplit(ConfigMixin):
             selected_ids (list): List of sample IDs to replace fold assignments for. If None, will replace fold assignments for all samples.
             selected_folds (list): List of fold indices to replace fold assignments for. If None, will replace fold assignments for all folds.
         '''
-        print(f'Replacing fold assignments from {replace_from} to {replace_to} for selected IDs and folds.')
+        
+        reassigned_samples_per_fold = {fold_idx: 0 for fold_idx in range(self.num_folds)}
         for sample in self.data:
             if selected_ids is not None and sample['id'] not in selected_ids:
                 continue
@@ -400,6 +401,11 @@ class DataSplit(ConfigMixin):
                     continue
                 if current_assignment == replace_from:
                     sample['folds'][fold_idx] = replace_to
+                    reassigned_samples_per_fold[fold_idx] += 1
+        
+        for fold_idx, num_reassigned in reassigned_samples_per_fold.items():
+            if num_reassigned > 0:
+                print(f'Reassigned {num_reassigned} samples in fold {fold_idx} from {replace_from} to {replace_to}.')
 
     def sample_fewshots(self, num_shots, label_attr, num_bootstraps = 1, seed = 42):
         '''
