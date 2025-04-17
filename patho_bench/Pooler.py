@@ -75,6 +75,11 @@ class Pooler:
                     self.model = self.model.to('cpu')
                     with torch.amp.autocast('cpu', dtype = self.model.precision, enabled = self.model.precision in [torch.bfloat16, torch.float16]):
                         pooled_feature = self.pool(self.model, cleaned_sample, 'cpu')
+                        
+                    # Save as h5
+                    with h5py.File(os.path.join(self.save_path, f"{sample['id']}.h5"), 'w') as f:
+                        f.create_dataset('features', data=pooled_feature.float().cpu().numpy())
+                        
                 else:
                     print(f'\033[31mError processing patch feats for {sample_id}\033[0m')
                     # raise Exception(f"Error processing patch feats for {sample_id}: {e}")
