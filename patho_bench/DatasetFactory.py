@@ -108,7 +108,7 @@ class DatasetFactory:
             split (Split): Split object
             task (str): Name of the task
         '''
-        for prefix in ["OS", "PFS", "DSS"]:
+        for prefix in ["OS", "PFS", "DSS", "DFS"]:
             if task.startswith(prefix):
                 return LabelDataset(split, task_names = [task], extra_attrs = [f"{task}_event", f"{task}_days"], dtype = 'int')
 
