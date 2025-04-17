@@ -235,7 +235,7 @@ class FinetuningExperiment(LoggingMixin, ClassificationMixin, SurvivalMixin, Bas
         labels_all = []
         preds_all = []
 
-        with torch.inference_mode():
+        with torch.inference_mode(), torch.autocast(device_type='cuda', dtype=self.precision, enabled=self.precision != torch.float32):
             for batch in dataloader:
                 if self.task_type == 'classification':
                     label = batch['labels'][self.model_kwargs['task_name']].cpu().int().numpy().tolist()[0]
