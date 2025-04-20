@@ -139,7 +139,7 @@ class Runner:
         study_config = {
             **vars(self.args),          # all argparse fields
             "task_codes": task_codes_list,
-            "hyperparams": hyperparams_dict,
+            "hyperparams": {model_name: hyperparams_dict for model_name in self.model_name},
             "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
             "commands": commands,
         }
@@ -247,8 +247,6 @@ class Runner:
 
         with open(os.path.join(study_path, 'config.yaml'), 'r') as f:
             exp_config = yaml.safe_load(f)
-            model_names = exp_config['model_name']
-            hyperparam_combos = generate_arg_combinations(exp_config['hyperparams'])
             
         all_results = []
         all_missing_results = []
@@ -262,8 +260,9 @@ class Runner:
             else:
                 metrics = SplitFactory.get_task_info(saveto = splits_root_dir, source = train_source, task = task_name)['metrics']
     
-            for hyperparams in hyperparam_combos:
-                for model_name in model_names:
+            for model_name, model_hyperparams in exp_config['hyperparams'].items():
+                hyperparam_combos = generate_arg_combinations(model_hyperparams)
+                for hyperparams in hyperparam_combos:
                     for metric in metrics:
                         exp_dir = os.path.join(study_path,
                                                     datasource_code,
