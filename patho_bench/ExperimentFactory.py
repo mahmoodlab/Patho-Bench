@@ -61,16 +61,16 @@ class ExperimentFactory:
             model_kwargs: dict, additional arguments to pass to the model constructor. Only needed if pooled_embeddings_dir is empty.
             num_bootstraps: int, number of bootstraps. Default is 100.
         '''
-        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split,
-                                                                                    task_config,
-                                                                                    saveto,
-                                                                                    combine_slides_per_patient,
-                                                                                    COMBINE_TRAIN_VAL,
-                                                                                    patch_embeddings_dirs,
-                                                                                    pooled_embeddings_dir,
-                                                                                    model_name,
-                                                                                    model_kwargs,
-                                                                                    gpu)
+        _, task_info, internal_dataset = ExperimentFactory._prepare_internal_dataset(split=split,
+                                                                                    task_config=task_config,
+                                                                                    saveto=saveto,
+                                                                                    combine_slides_per_patient=combine_slides_per_patient,
+                                                                                    combine_train_val=COMBINE_TRAIN_VAL,
+                                                                                    patch_embeddings_dirs=patch_embeddings_dirs,
+                                                                                    pooled_embeddings_dirs=pooled_embeddings_dir,
+                                                                                    model_name=model_name,
+                                                                                    model_kwargs=model_kwargs,
+                                                                                    gpu=gpu)
         
         # Initialize experiment
         experiment = LinearProbeExperiment(
