@@ -11,7 +11,7 @@ This project was developed by the [Mahmood Lab](https://faisal.ai/) at Harvard M
 > Please report any issues on GitHub and contribute by opening a pull request.
 
 ## &#9889; Key features:
-- **Reproducibility**: Canonical train-test splits for 42 tasks across 20 public datasets.
+- **Reproducibility**: Canonical train-test splits for 95 tasks across 33 public datasets.
 - **Evaluation frameworks**: Supports linear probing, prototyping (coming soon), retrieval, Cox survival prediction, and supervised fine-tuning.
 - **Scalability**: Scales to thousands of experiments with automatic GPU load-balancing.
 
