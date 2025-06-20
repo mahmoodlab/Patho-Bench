@@ -78,7 +78,7 @@ class NLLSurvLoss(nn.Module):
         censored_loss = -y_censor * torch.log(s_this)
 
         # Combine losses
-        loss = uncensored_loss + self.alpha * censored_loss
+        loss = uncensored_loss + (1 - self.alpha) * censored_loss
 
         # Apply reduction
         if self.reduction == 'mean':
